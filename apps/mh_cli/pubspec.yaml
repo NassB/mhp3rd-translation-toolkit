@@ -1,0 +1,14 @@
+name: mh_cli
+description: CLI mhtk.
+version: 0.0.1
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+dependencies:
+  mh_build: any
+  mh_iso: any
+  mh_databin: any
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

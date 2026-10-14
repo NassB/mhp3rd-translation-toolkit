@@ -1,0 +1,20 @@
+# Données du jeu et artefacts (AGENTS.md §4.2, §11)
+local/
+third_party/
+out/
+*.iso
+*.ISO
+DATA.BIN
+*.bin.enc
+MHP3RD_DATA.BIN
+*.sqlite
+
+# Outils
+.dart_tool/
+build/
+.packages
+.idea/
+.vscode/
+
+# FVM : on commite .fvmrc, pas le SDK
+.fvm/

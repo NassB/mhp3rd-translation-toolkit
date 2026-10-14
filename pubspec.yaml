@@ -1,0 +1,14 @@
+name: mhp3_toolkit_workspace
+description: Racine du pub workspace du MHP3rd Translation Toolkit.
+publish_to: none
+environment:
+  sdk: ^3.6.0
+workspace:
+  - packages/mh_binary
+  - packages/mh_iso
+  - packages/mh_databin
+  - packages/mh_formats
+  - packages/mh_budget
+  - packages/mh_tdb
+  - packages/mh_build
+  - apps/mh_cli

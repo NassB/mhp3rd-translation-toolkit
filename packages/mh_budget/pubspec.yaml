@@ -1,0 +1,12 @@
+name: mh_budget
+description: Mesure octets / pixels / lignes et profils de longueur.
+version: 0.0.1
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+dependencies:
+  mh_formats: any
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

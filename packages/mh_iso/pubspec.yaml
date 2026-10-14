@@ -1,0 +1,12 @@
+name: mh_iso
+description: Lecture ISO 9660 et registre des versions du jeu.
+version: 0.0.1
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+dependencies:
+  mh_binary: any
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

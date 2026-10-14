@@ -1,0 +1,12 @@
+# Registre des versions connues (ARCHITECTURE.md §4).
+# Source : third_party/mhp3-translation-tools/patch-iso.py
+# L'offset calculé par le parcours ISO 9660 doit être égal à databin_iso_offset,
+# sinon le build est refusé (AGENTS.md §4.3).
+- id: ULJM05800
+  platform: psp
+  iso_md5: 8e19a966356a83b8b395957671494bd8
+  databin_iso_offset: 0x6D50000 # vérifié par parcours ISO9660
+- id: NPJB40001_HD
+  platform: ps3
+  iso_md5: 8328f5774e3106953a9560a0b18c2d49
+  databin_iso_offset: 0x6D60000

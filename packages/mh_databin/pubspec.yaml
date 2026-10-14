@@ -1,0 +1,13 @@
+name: mh_databin
+description: Chiffrement de DATA.BIN, TOC, index, PatchFile.
+version: 0.0.1
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.6.0
+dependencies:
+  mh_binary: any
+  mh_iso: any
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0
