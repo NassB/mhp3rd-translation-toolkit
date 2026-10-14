@@ -21,6 +21,16 @@ Niveaux : `[compilé]`, `[fixtures]`, `[réel]`, `[en jeu]`.
 - [x] **T8 Test `integration` de round-trip** [compilé] — `packages/mh_databin/test/data_bin_roundtrip_integration_test.dart` (tags `integration`, `slow`) : ouvre l'ISO via `FileIsoImage`, construit l'index, vérifie `encrypt(decrypt(slot, lba), lba) == slot` pour chaque fichier chiffré. `skip` sans `MHP3_ISO` ; `scripts/check.sh packages/mh_databin` = OK. Non exécuté sur données réelles : critère de sortie phase 0 à valider par l'humain (`scripts/check.sh packages/mh_databin --integration`).
 - [x] **T9 `mhtk index`** [fixtures] — `runIndex` (`apps/mh_cli/lib/src/index_command.dart`) : `mhtk index <DATA.BIN>` ou `--iso <iso> [--config ...]` ; affiche fichiers, plus gros slot, somme des slots. Test sur DATA.BIN synthétique + erreurs. `scripts/check.sh apps/mh_cli` = OK. Reste : commit (humain) ; exécution sur ISO réelle à valider (`dart run apps/mh_cli/bin/mhtk.dart index --iso local/MHP3.iso`).
 
+## Phase 1 — Codec `string_table_a` (tâches)
+
+Critère de sortie : round-trip bit à bit de toutes les tables détectées (test `integration`).
+
+- [x] **T10 Référence `string_table_a`** [compilé] — `docs/FORMATS/string_table_a.md` écrit depuis mhtools/extractA.py (structure, divergences Java/Python, pièges). **Non vérifié sur fichiers réels** ; 4 questions ouvertes listées dans la fiche (unknownHeader, endData, alias, chaînes vides), à trancher en T11/T13 via `/explore-data`. Reste : commit (humain).
+- [ ] **T11 Décodeur `string_table_a`** — modèle immuable, offsets d'origine et alias conservés, champs inconnus conservés ; fixtures synthétiques.
+- [ ] **T12 Encodeur `string_table_a`** — `measure == encode().length`, round-trip, cas limites (table nulle, chaîne vide, alias, tronqué, hors bornes).
+- [ ] **T13 Test `integration` round-trip** — détection des tables via `/explore-data`, round-trip sur tous les fichiers réels (à valider par l'humain).
+- [ ] **T14 Import/export mhtools** — format d'échange texte compatible mhtools.
+
 ## Fait
 
 - Squelette T0 vérifié [compilé] : Dart 3.9.0, `dart pub get` OK, `scripts/check.sh` = OK. Flutter/FVM absents (studio non créé).
