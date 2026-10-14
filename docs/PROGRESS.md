@@ -16,7 +16,7 @@ Niveaux : `[compilé]`, `[fixtures]`, `[réel]`, `[en jeu]`.
 - [x] **T3 `mh_binary` : ByteWriter + alignement + erreurs** [fixtures] — `ByteWriter` LE (u8/u16/u32/i32/bytes/fill/padTo, plages vérifiées), `alignUp` + `sectorSize`, `CryptoError`/`PatchError`/`IsoError`. `scripts/check.sh packages/mh_binary` = OK. Reste : commit (humain). `BudgetError` viendra avec `mh_budget`.
 - [x] **T4 `mh_iso` : parseur ISO 9660** [fixtures] — `Iso9660` (PVD secteur 16, `list`, `locate` insensible à la casse, suffixe `;1` retiré, bornes → `IsoError`), `IsoEntry`, builder `test/support/iso_builder.dart`. `scripts/check.sh packages/mh_iso` = OK. Lecture via `IsoReadAt` (prêt pour fichier sans tout charger en mémoire). Reste : commit (humain).
 - [x] **T5 `mh_iso` : registre + MD5 + cloneTo** [fixtures] — `GameVersionRegistry` (YAML, deps `crypto` + `yaml` ajoutées), `IsoImage`/`FileIsoImage.open` (MD5 en flux, version inconnue ou offset DATA.BIN divergent → `IsoError`), `openRead`, `cloneTo` (refuse tout fichier existant, source comprise). `scripts/check.sh packages/mh_iso` = OK. Test `integration` écrit, `skip` sans `MHP3_ISO`. Reste : commit (humain).
-- [ ] **T6 `mh_databin` : `DataCipher`** — portage de `third_party/mhef/mhef/psp.py` (via `/ref-lookup`, licence notée en T1). Critère : `encrypt(decrypt(x, lba), lba) == x` sur fixtures aléatoires + vecteur de référence.
+- [x] **T6 `mh_databin` : `DataCipher`** [fixtures] — portage de `mhef/psp.py` (`encrypt`/`decrypt`, tables, flux de clés) dans `lib/src/data_cipher.dart` (en-tête GPLv3+). Round-trip sur blocs aléatoires, lba 0 = graine par défaut, erreurs typées (longueur non multiple de 4, LBA hors u32). Aucun vecteur de référence dans `third_party/` : vecteur de non-régression (clé 0xAE1DED19 recalculée à la main). `scripts/check.sh packages/mh_databin` = OK. Reste : commit (humain). Exceptions non chiffrées (indices 17-20, 81-92) traitées en T7.
 - [ ] **T7 `mh_databin` : TOC et index** — lecture de la TOC, `IndexEntry(id, lba, slotBytes, sha1Plain)`. Critère : index d'un `DATA.BIN` synthétique chiffré avec le codec de T6.
 - [ ] **T8 Test `integration` de round-trip** — `MHP3_ISO` absent ⇒ skip. Critère de sortie de la phase : `scripts/check.sh packages/mh_databin --integration` = OK (humain).
 - [ ] **T9 `mhtk index`** — commande CLI affichant nombre de fichiers, plus gros slot, somme des tailles. Critère : exécution sur fixture.
@@ -27,7 +27,7 @@ Niveaux : `[compilé]`, `[fixtures]`, `[réel]`, `[en jeu]`.
 
 ## Questions ouvertes
 
-- Valider la licence globale GPLv3+ (voir 0001-licences.md) avant T6. `MHP3_ISO` et `local/MHP3.iso` encore absents.
+- Licence globale GPLv3+ validée par l'humain (T6). `MHP3_ISO` et `local/MHP3.iso` encore absents.
 - `apps/mh_studio` : créé par `pwsh scripts/setup_studio.ps1` (FVM). Les deps Flutter (Riverpod, etc.) seront proposées avant ajout. `apps/mh_patcher` et `server/mh_server` restent à créer à leur phase.
 - `scripts/check.sh` appelle `dart`/`flutter` : les lancer avec `.fvm/flutter_sdk/bin` dans le PATH (le Dart de FVM sert pour tout le workspace).
 - `lints: ^5.0.0` et `test: ^1.25.0` supposent Dart ≥ 3.6 ; à confirmer avec `dart --version`.
