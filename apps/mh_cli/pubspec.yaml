@@ -6,6 +6,7 @@ resolution: workspace
 environment:
   sdk: ^3.6.0
 dependencies:
+  mh_binary: any
   mh_build: any
   mh_iso: any
   mh_databin: any

@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:mh_cli/mh_cli.dart';
 
-void main(List<String> args) {
-  // Squelette : les commandes arrivent en phase 0 (mhtk index) puis phase 2.
-  // ignore: avoid_print
-  print('mhtk $mhCliPackageName (squelette)');
+Future<void> main(List<String> args) async {
+  if (args.isNotEmpty && args.first == 'index') {
+    exitCode = await runIndex(args.sublist(1), stdout, stderr);
+    return;
+  }
+  stderr.writeln('usage: mhtk index <DATA.BIN> | --iso <game.iso>');
+  exitCode = 64;
 }
