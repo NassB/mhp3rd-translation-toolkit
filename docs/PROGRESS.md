@@ -11,7 +11,7 @@ Critère de sortie : `encrypt(decrypt(x, lba), lba) == x` sur 100 % de `DATA.BIN
 Niveaux : `[compilé]`, `[fixtures]`, `[réel]`, `[en jeu]`.
 
 - [x] **T0 Squelette monorepo** [compilé] — `git init`, `dart pub get` et `scripts/check.sh` (`OK`) passés ; `git check-ignore -v` ignore `local/`, `third_party/`, `x.iso`. Reste : premier commit (humain).
-- [ ] **T1 Licences** — `docs/DECISIONS/0001-licences.md`. Prérequis : `third_party/` cloné. Critère : une ligne par dépôt (licence, portable ou non, licence cible du paquet).
+- [x] **T1 Licences** [compilé] — `docs/DECISIONS/0001-licences.md` écrit (3 dépôts GPLv3+, licence globale proposée GPLv3+, à confirmer par l'humain).
 - [ ] **T2 `mh_binary` : ByteReader** — LE u8/u16/u32/i32, `bytes(n)`, `seek`, `skip`, bornes → `FormatError` avec offset. Critère : tests de lecture + hors bornes sur fixtures.
 - [ ] **T3 `mh_binary` : ByteWriter + alignement + erreurs** — `ByteWriter` LE, `alignUp`, hiérarchie `MhError` (`FormatError`, `CryptoError`, `PatchError`, `IsoError`). Critère : écriture puis relecture identique ; `alignUp(n, 2048)` testé.
 - [ ] **T4 `mh_iso` : parseur ISO 9660** — descripteur primaire (secteur 16), parcours des répertoires, `locate('PSP_GAME/USRDIR/DATA.BIN')`. Critère : ISO synthétique minimale générée par builder de test, offset retrouvé.
@@ -24,11 +24,10 @@ Niveaux : `[compilé]`, `[fixtures]`, `[réel]`, `[en jeu]`.
 ## Fait
 
 - Squelette T0 vérifié [compilé] : Dart 3.9.0, `dart pub get` OK, `scripts/check.sh` = OK. Flutter/FVM absents (studio non créé).
-- T1 reportée : l'humain clone `third_party/` (mhtools, mhef, mhp3-translation-tools) puis relance `/phase-run T1`.
 
 ## Questions ouvertes
 
-- Le prompt de démarrage prévoit les licences (T1) : `third_party/` n'est pas encore cloné sur la machine.
+- Valider la licence globale GPLv3+ (voir 0001-licences.md) avant T6. `MHP3_ISO` et `local/MHP3.iso` encore absents.
 - `apps/mh_studio` : créé par `pwsh scripts/setup_studio.ps1` (FVM). Les deps Flutter (Riverpod, etc.) seront proposées avant ajout. `apps/mh_patcher` et `server/mh_server` restent à créer à leur phase.
 - `scripts/check.sh` appelle `dart`/`flutter` : les lancer avec `.fvm/flutter_sdk/bin` dans le PATH (le Dart de FVM sert pour tout le workspace).
 - `lints: ^5.0.0` et `test: ^1.25.0` supposent Dart ≥ 3.6 ; à confirmer avec `dart --version`.
