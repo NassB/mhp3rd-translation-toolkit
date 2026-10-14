@@ -40,3 +40,11 @@ Voir `docs/DECISIONS/`.
 
 - Après T4/T5 (inclut l'ISO réelle : MD5 reconnu + offset DATA.BIN = 0x6D50000) : `MHP3_ISO=local/MHP3.iso scripts/check.sh packages/mh_iso --integration`
 - Fin de phase 0 : `scripts/check.sh packages/mh_databin --integration`
+
+## Validation phase 0 sur données réelles (2026-10-15) [réel]
+
+- ISO ULJM05800 de l'humain : MD5 `40ee8e11…` ≠ référence `8e19a966…` ; ID, taille et offset DATA.BIN (0x6D50000) identiques → variante ajoutée au registre (`docs/DECISIONS/0002-variante-md5-uljm05800.md`). Cause de la différence de MD5 non identifiée.
+- `packages/mh_iso` `-t integration` : OK.
+- `packages/mh_databin` `-t integration` : OK (round-trip `encrypt(decrypt(x, lba), lba) == x` sur tous les fichiers chiffrés).
+- Correction découverte sur données réelles : la TOC contient des entrées égales (slots vides, `slotBytes = 0`). Contrainte « strictement croissant » (non sourcée) remplacée par « non décroissant » + test synthétique.
+- **Critère de sortie phase 0 : validé.** Reste : commit (humain), exécuter `mhtk index --iso local/MHP3.iso` (T9).

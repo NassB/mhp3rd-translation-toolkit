@@ -76,9 +76,11 @@ final class DataBinToc {
     while (reader.remaining >= 4) {
       final offset = reader.position;
       final v = reader.u32();
-      if (v <= previous) {
+      // Non décroissant : deux entrées égales = slot vide (observé sur
+      // DATA.BIN réel ; psp.py l.238-243 ne l'interdit pas, taille 0).
+      if (v < previous) {
         throw FormatError(
-          'TOC not strictly increasing: $v after $previous',
+          'TOC decreasing: $v after $previous',
           offset: offset,
         );
       }

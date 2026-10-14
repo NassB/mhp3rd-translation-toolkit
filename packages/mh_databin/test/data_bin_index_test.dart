@@ -31,6 +31,13 @@ void main() {
     expect(idx.byId(1).modId, '0000');
   });
 
+  test('slot vide (deux entrées de TOC égales) accepté', () {
+    final db = SyntheticDataBin.build([1, 0, 2]);
+    final idx = DataBinIndex.build(db.readAt, db.bytes.length);
+    expect(idx.entries.map((e) => e.slotBytes), [2048, 0, 4096]);
+    expect(idx.entries[1].lba, idx.entries[2].lba);
+  });
+
   test('exceptions MHP3 par défaut : indices 17-20 et 81-92 en clair', () {
     final db = SyntheticDataBin.build(
       List<int>.filled(95, 1),
