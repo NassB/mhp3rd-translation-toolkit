@@ -12,7 +12,7 @@ Niveaux : `[compilé]`, `[fixtures]`, `[réel]`, `[en jeu]`.
 
 - [x] **T0 Squelette monorepo** [compilé] — `git init`, `dart pub get` et `scripts/check.sh` (`OK`) passés ; `git check-ignore -v` ignore `local/`, `third_party/`, `x.iso`. Reste : premier commit (humain).
 - [x] **T1 Licences** [compilé] — `docs/DECISIONS/0001-licences.md` écrit (3 dépôts GPLv3+, licence globale proposée GPLv3+, à confirmer par l'humain).
-- [ ] **T2 `mh_binary` : ByteReader** — LE u8/u16/u32/i32, `bytes(n)`, `seek`, `skip`, bornes → `FormatError` avec offset. Critère : tests de lecture + hors bornes sur fixtures.
+- [x] **T2 `mh_binary` : ByteReader** [fixtures] — LE u8/u16/u32/i32, `bytes(n)` (vue sans copie), `seek`, `skip`, bornes → `FormatError` avec offset. `scripts/check.sh packages/mh_binary` = OK. `MhError` + `FormatError` créés ici (minimaux) ; T3 ajoute `CryptoError`, `PatchError`, `IsoError`.
 - [ ] **T3 `mh_binary` : ByteWriter + alignement + erreurs** — `ByteWriter` LE, `alignUp`, hiérarchie `MhError` (`FormatError`, `CryptoError`, `PatchError`, `IsoError`). Critère : écriture puis relecture identique ; `alignUp(n, 2048)` testé.
 - [ ] **T4 `mh_iso` : parseur ISO 9660** — descripteur primaire (secteur 16), parcours des répertoires, `locate('PSP_GAME/USRDIR/DATA.BIN')`. Critère : ISO synthétique minimale générée par builder de test, offset retrouvé.
 - [ ] **T5 `mh_iso` : registre + MD5 + cloneTo** — lecture de `config/game_versions.yaml`, vérification MD5 et égalité offset calculé/registre, `cloneTo` (jamais d'écriture sur la source). Critère : tests fixtures ; test `integration` sur `MHP3_ISO` à lancer par l'humain.
