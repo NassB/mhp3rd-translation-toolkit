@@ -14,8 +14,8 @@ Niveaux : `[compilé]`, `[fixtures]`, `[réel]`, `[en jeu]`.
 - [x] **T1 Licences** [compilé] — `docs/DECISIONS/0001-licences.md` écrit (3 dépôts GPLv3+, licence globale proposée GPLv3+, à confirmer par l'humain).
 - [x] **T2 `mh_binary` : ByteReader** [fixtures] — LE u8/u16/u32/i32, `bytes(n)` (vue sans copie), `seek`, `skip`, bornes → `FormatError` avec offset. `scripts/check.sh packages/mh_binary` = OK. `MhError` + `FormatError` créés ici (minimaux) ; T3 ajoute `CryptoError`, `PatchError`, `IsoError`.
 - [x] **T3 `mh_binary` : ByteWriter + alignement + erreurs** [fixtures] — `ByteWriter` LE (u8/u16/u32/i32/bytes/fill/padTo, plages vérifiées), `alignUp` + `sectorSize`, `CryptoError`/`PatchError`/`IsoError`. `scripts/check.sh packages/mh_binary` = OK. Reste : commit (humain). `BudgetError` viendra avec `mh_budget`.
-- [ ] **T4 `mh_iso` : parseur ISO 9660** — descripteur primaire (secteur 16), parcours des répertoires, `locate('PSP_GAME/USRDIR/DATA.BIN')`. Critère : ISO synthétique minimale générée par builder de test, offset retrouvé.
-- [ ] **T5 `mh_iso` : registre + MD5 + cloneTo** — lecture de `config/game_versions.yaml`, vérification MD5 et égalité offset calculé/registre, `cloneTo` (jamais d'écriture sur la source). Critère : tests fixtures ; test `integration` sur `MHP3_ISO` à lancer par l'humain.
+- [x] **T4 `mh_iso` : parseur ISO 9660** [fixtures] — `Iso9660` (PVD secteur 16, `list`, `locate` insensible à la casse, suffixe `;1` retiré, bornes → `IsoError`), `IsoEntry`, builder `test/support/iso_builder.dart`. `scripts/check.sh packages/mh_iso` = OK. Lecture via `IsoReadAt` (prêt pour fichier sans tout charger en mémoire). Reste : commit (humain).
+- [x] **T5 `mh_iso` : registre + MD5 + cloneTo** [fixtures] — `GameVersionRegistry` (YAML, deps `crypto` + `yaml` ajoutées), `IsoImage`/`FileIsoImage.open` (MD5 en flux, version inconnue ou offset DATA.BIN divergent → `IsoError`), `openRead`, `cloneTo` (refuse tout fichier existant, source comprise). `scripts/check.sh packages/mh_iso` = OK. Test `integration` écrit, `skip` sans `MHP3_ISO`. Reste : commit (humain).
 - [ ] **T6 `mh_databin` : `DataCipher`** — portage de `third_party/mhef/mhef/psp.py` (via `/ref-lookup`, licence notée en T1). Critère : `encrypt(decrypt(x, lba), lba) == x` sur fixtures aléatoires + vecteur de référence.
 - [ ] **T7 `mh_databin` : TOC et index** — lecture de la TOC, `IndexEntry(id, lba, slotBytes, sha1Plain)`. Critère : index d'un `DATA.BIN` synthétique chiffré avec le codec de T6.
 - [ ] **T8 Test `integration` de round-trip** — `MHP3_ISO` absent ⇒ skip. Critère de sortie de la phase : `scripts/check.sh packages/mh_databin --integration` = OK (humain).
@@ -38,5 +38,5 @@ Voir `docs/DECISIONS/`.
 
 ## À valider par l'humain sur données réelles
 
-- Après T4/T5 : `MHP3_ISO=local/MHP3.iso scripts/check.sh packages/mh_iso --integration`
+- Après T4/T5 (inclut l'ISO réelle : MD5 reconnu + offset DATA.BIN = 0x6D50000) : `MHP3_ISO=local/MHP3.iso scripts/check.sh packages/mh_iso --integration`
 - Fin de phase 0 : `scripts/check.sh packages/mh_databin --integration`
