@@ -1,7 +1,7 @@
 /// Erreur de base du toolkit (AGENTS.md §7).
 ///
-/// T3 ajoutera `CryptoError`, `PatchError`, `IsoError` ; seul `FormatError`
-/// existe pour l'instant car `ByteReader` en a besoin.
+/// Sous-types : [FormatError], [CryptoError], [PatchError], [IsoError].
+/// `BudgetError` sera ajouté avec `mh_budget`.
 abstract class MhError implements Exception {
   /// Crée une erreur avec son [message] et le contexte optionnel
   /// ([offset] dans le flux, [fileId] mhtools base 1).
@@ -31,4 +31,22 @@ abstract class MhError implements Exception {
 final class FormatError extends MhError {
   /// Voir [MhError].
   const FormatError(super.message, {super.offset, super.fileId});
+}
+
+/// Échec de chiffrement ou de déchiffrement de `DATA.BIN`.
+final class CryptoError extends MhError {
+  /// Voir [MhError].
+  const CryptoError(super.message, {super.offset, super.fileId});
+}
+
+/// Échec de construction ou d'application d'un patch `MHP3RD_DATA.BIN`.
+final class PatchError extends MhError {
+  /// Voir [MhError].
+  const PatchError(super.message, {super.offset, super.fileId});
+}
+
+/// Image ISO 9660 invalide, inattendue ou opération interdite sur l'ISO.
+final class IsoError extends MhError {
+  /// Voir [MhError].
+  const IsoError(super.message, {super.offset, super.fileId});
 }
