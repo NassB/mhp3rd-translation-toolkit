@@ -43,7 +43,7 @@ Voir `docs/DECISIONS/`.
 
 ## Validation phase 0 sur données réelles (2026-10-15) [réel]
 
-- ISO ULJM05800 de l'humain : MD5 `40ee8e11…` ≠ référence `8e19a966…` ; ID, taille et offset DATA.BIN (0x6D50000) identiques → variante ajoutée au registre (`docs/DECISIONS/0002-variante-md5-uljm05800.md`). Cause de la différence de MD5 non identifiée.
+- ISO ULJM05800 de l'humain : MD5 `40ee8e11…` ≠ référence `8e19a966…` ; ID, taille et offset DATA.BIN (0x6D50000) identiques → MD5 de référence du registre (anciennes entrées patch-iso.py et NPJB40001_HD retirées) (`docs/DECISIONS/0002-variante-md5-uljm05800.md`). Cause de la différence de MD5 non identifiée.
 - `packages/mh_iso` `-t integration` : OK.
 - `packages/mh_databin` `-t integration` : OK (round-trip `encrypt(decrypt(x, lba), lba) == x` sur tous les fichiers chiffrés).
 - Correction découverte sur données réelles : la TOC contient des entrées égales (slots vides, `slotBytes = 0`). Contrainte « strictement croissant » (non sourcée) remplacée par « non décroissant » + test synthétique.
