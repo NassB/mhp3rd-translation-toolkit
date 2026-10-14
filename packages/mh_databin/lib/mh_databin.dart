@@ -1,6 +1,9 @@
 /// Chiffrement de DATA.BIN, TOC, index, PatchFile.
 library;
 
+export 'src/data_bin_entry.dart';
+export 'src/data_bin_index.dart';
+export 'src/data_bin_toc.dart';
 export 'src/data_cipher.dart';
 
 /// Nom du paquet (test de fumée).

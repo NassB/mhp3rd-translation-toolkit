@@ -6,6 +6,7 @@ resolution: workspace
 environment:
   sdk: ^3.6.0
 dependencies:
+  crypto: ^3.0.7
   mh_binary: any
   mh_iso: any
 dev_dependencies:
