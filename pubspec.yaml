@@ -10,6 +10,7 @@ workspace:
   - packages/mh_formats
   - packages/mh_budget
   - packages/mh_tdb
+  - packages/mh_translate
   - packages/mh_build
   - apps/mh_cli
   - apps/mh_studio

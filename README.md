@@ -33,8 +33,9 @@ packages/
   mh_databin/    DATA.BIN cipher, TOC, file index
   mh_formats/    format codecs (string_table_a; quest, pac, gim, font later)
   mh_budget/     length measurement (bytes / pixels / lines)      [planned]
-  mh_tdb/        translation database (drift/SQLite), sync        [planned]
-  mh_build/      build pipeline, cache, reports                   [planned]
+  mh_tdb/        translation database (drift/SQLite), repositories, glossary, translation memory
+  mh_build/      build pipeline, ISO build with verification, project helpers
+  mh_translate/  AI pre-translation: chat client for a local LLM (LM Studio), drafts only
 apps/
   mh_cli/        `mhtk` command-line tool
   mh_studio/     Flutter desktop translation app (Riverpod)       [planned]
