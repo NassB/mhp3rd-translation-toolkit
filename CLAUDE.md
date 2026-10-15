@@ -33,6 +33,10 @@ Règles communes à tous les agents (s'appliquent intégralement) :
 - Vérification → `/check`, jamais `dart test` brut sur tout le dépôt.
 - Réponses courtes : pas de récapitulatif du code écrit, pas de recopie de fichiers, diff ou liste de fichiers suffit.
 
+## README
+
+- `README.md` (anglais) est mis à jour après chaque commit si nécessaire (statut des phases, commandes CLI, structure). Le mettre à jour avant de commiter pour qu'il parte dans le même commit.
+
 ## Données réelles
 
 - Jamais de binaire réel lu en entier ; `xxd -s <offset> -l <n>` ou script de résumé.
