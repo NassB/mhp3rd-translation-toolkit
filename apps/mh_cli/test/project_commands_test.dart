@@ -227,4 +227,160 @@ void main() {
       expect((await import()).$1, 1);
     });
   });
+
+  group('budget and build', () {
+    late String dump;
+
+    Future<void> translate(String line, {String status = 'translated'}) async {
+      dump = '${tmp.path}/dump';
+      Directory(dump).createSync(recursive: true);
+      File('$dump/string_table_0.txt').writeAsStringSync('$line\ntrois\n');
+      final r = await mhtk(runImport, [
+        '--project',
+        project,
+        '--from',
+        dump,
+        '--file',
+        '1',
+        '--status',
+        status,
+        '--config',
+        config,
+      ]);
+      expect(r.$1, 0, reason: r.$3);
+    }
+
+    Future<(int, String, String)> budget(
+      int file, {
+      List<String> extra = const [],
+    }) =>
+        mhtk(runBudget, [
+          '--project',
+          project,
+          '--file',
+          '$file',
+          '--config',
+          config,
+          '--validated',
+          '${tmp.path}/none.yaml',
+          ...extra,
+        ]);
+
+    Future<(int, String, String)> build(
+      String out, {
+      List<String> extra = const [],
+    }) =>
+        mhtk(runBuildCommand, [
+          '--project',
+          project,
+          '--target',
+          'iso',
+          '--out',
+          out,
+          '--config',
+          config,
+          '--validated',
+          '${tmp.path}/none.yaml',
+          ...extra,
+        ]);
+
+    setUp(() async {
+      await init();
+      await extract();
+    });
+
+    test('budget reports a file with and without translations', () async {
+      await translate('UN<NEWLINE>DEUX');
+      final (code, out, err) = await budget(1);
+      expect(code, 0, reason: err);
+      expect(out, contains('file 1\n'));
+      expect(out, contains('status:   ok'));
+      expect(out, contains('policy strict'));
+
+      final plain = await budget(3);
+      expect(plain.$1, 0, reason: plain.$3);
+      expect(plain.$2, contains('no eligible translation'));
+      expect(plain.$2, contains('margin:   0 bytes'));
+    });
+
+    test('budget rejects bad input and unlisted slot policy', () async {
+      expect((await mhtk(runBudget, [])).$1, 64);
+      expect((await budget(1, extra: ['--policy', 'bogus'])).$1, 64);
+      expect((await budget(99)).$1, 1);
+      final slot = await budget(1, extra: ['--policy', 'slot']);
+      expect(slot.$1, 1);
+      expect(slot.$2, contains('policyNotAllowed'));
+    });
+
+    test('build writes a verified copy and leaves the source', () async {
+      await translate('UN<NEWLINE>DEUX');
+      final before = File(isoPath).readAsBytesSync();
+      final outIso = '${tmp.path}/sub/out.iso';
+      final (code, out, err) = await build(outIso);
+      expect(code, 0, reason: err);
+      expect(out, contains('status:   ok'));
+      expect(out, contains('file 1: ok'));
+      expect(File(outIso).existsSync(), isTrue);
+      expect(File(isoPath).readAsBytesSync(), before);
+
+      final again = await build(outIso);
+      expect(again.$1, 1);
+      expect(again.$3, contains('already exists'));
+    });
+
+    test('build with nothing eligible writes no ISO', () async {
+      final outIso = '${tmp.path}/none.iso';
+      final (code, out, _) = await build(outIso);
+      expect(code, 0);
+      expect(out, contains('nothing_to_build'));
+      expect(File(outIso).existsSync(), isFalse);
+    });
+
+    test('build over budget fails and writes no ISO', () async {
+      await translate('x' * 3000);
+      final outIso = '${tmp.path}/big.iso';
+      final (code, out, _) = await build(outIso);
+      expect(code, 1);
+      expect(out, contains('budget_exceeded'));
+      expect(File(outIso).existsSync(), isFalse);
+      final b = await budget(1);
+      expect(b.$1, 1);
+      expect(b.$2, contains('slotOverflow'));
+    });
+
+    test('min-status filters drafts; unsupported target is refused', () async {
+      await translate('UN<NEWLINE>DEUX', status: 'draft');
+      expect(
+        (await build('${tmp.path}/a.iso')).$2,
+        contains('nothing_to_build'),
+      );
+      final r =
+          await build('${tmp.path}/b.iso', extra: ['--min-status', 'draft']);
+      expect(r.$2, contains('status:   ok'));
+      final plugin = await mhtk(runBuildCommand, [
+        '--project',
+        project,
+        '--target',
+        'plugin',
+      ]);
+      expect(plugin.$1, 64);
+    });
+  });
+
+  group('loadValidatedFiles', () {
+    test('absent, empty and valid lists', () {
+      expect(loadValidatedFiles('${tmp.path}/absent.yaml'), isEmpty);
+      final f = File('${tmp.path}/v.yaml')..writeAsStringSync('# x\n[]\n');
+      expect(loadValidatedFiles(f.path), isEmpty);
+      f.writeAsStringSync('- 17\n- 2813\n');
+      expect(loadValidatedFiles(f.path), {17, 2813});
+    });
+
+    test('rejects anything but a list of integers', () {
+      final f = File('${tmp.path}/v.yaml')..writeAsStringSync('a: 1\n');
+      expect(() => loadValidatedFiles(f.path), throwsA(isA<FormatError>()));
+      f.writeAsStringSync('- x\n');
+      expect(() => loadValidatedFiles(f.path), throwsA(isA<FormatError>()));
+    });
+  });
 }

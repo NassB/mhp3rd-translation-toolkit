@@ -10,6 +10,8 @@ commands:
   init     create a project from an ISO
   extract  detect and import the text tables into the project database
   import   apply a mhtools dump folder to one file
+  budget   budget report of one file
+  build    write the translations into a copy of the ISO
   status   show the project database content''';
 
 Future<void> main(List<String> args) async {
@@ -23,6 +25,10 @@ Future<void> main(List<String> args) async {
       exitCode = await runExtract(rest, stdout, stderr);
     case 'import':
       exitCode = await runImport(rest, stdout, stderr);
+    case 'budget':
+      exitCode = await runBudget(rest, stdout, stderr);
+    case 'build':
+      exitCode = await runBuildCommand(rest, stdout, stderr);
     case 'status':
       exitCode = await runStatus(rest, stdout, stderr);
     default:

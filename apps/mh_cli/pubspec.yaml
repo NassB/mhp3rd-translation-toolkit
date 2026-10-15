@@ -7,8 +7,10 @@ environment:
   sdk: ^3.6.0
 dependencies:
   mh_binary: any
+  mh_budget: any
   mh_build: any
   mh_iso: any
+  yaml: ^3.1.4
   crypto: ^3.0.7
   mh_databin: any
   mh_formats: any

@@ -1,0 +1,5 @@
+# IDs DATA.BIN (base 1, ARCHITECTURE.md §8.2) validés en jeu pour la politique
+# `slot` (taille reconstruite <= slot au lieu de <= taille originale).
+# Alimentée par la QA après test dans PPSSPP/PSP réelle ; ne rien y ajouter
+# sans test en jeu. Liste YAML d'entiers.
+[]

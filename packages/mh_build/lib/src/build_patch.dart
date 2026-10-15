@@ -49,6 +49,7 @@ final class BuildResult {
 /// Construit le patch des traductions de [locale] de statut [minStatus] ou
 /// plus (`translated` : nightly ; `reviewed` : release).
 ///
+/// [onlyFileIds] restreint la sélection (rapport de budget d'un fichier).
 /// Tout ou rien : si un fichier dépasse son budget, [BuildResult.patch] est
 /// `null` et les rapports de tous les fichiers sont renvoyés. Lève [TdbError]
 /// si la base ne correspond pas à l'original (SHA-1, position inexistante).
@@ -60,12 +61,19 @@ Future<BuildResult> buildPatch({
   String minStatus = 'translated',
   BudgetPolicy policy = BudgetPolicy.strict,
   Set<int> slotAllowedFileIds = const {},
+  Set<int>? onlyFileIds,
 }) async {
-  final translations = await eligibleTranslations(
+  final all = await eligibleTranslations(
     db,
     locale: locale,
     minStatus: minStatus,
   );
+  final translations = onlyFileIds == null
+      ? all
+      : [
+          for (final t in all)
+            if (onlyFileIds.contains(t.fileId)) t
+        ];
   final byFile = <int, List<BuildTranslation>>{};
   for (final t in translations) {
     (byFile[t.fileId] ??= []).add(t);

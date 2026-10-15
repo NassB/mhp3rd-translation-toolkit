@@ -88,6 +88,8 @@ dart run apps/mh_cli/bin/mhtk.dart index path/to/DATA.BIN
 dart run apps/mh_cli/bin/mhtk.dart init --iso local/MHP3.iso --project out/fr   # create a project (MD5 checked, SQLite db)
 dart run apps/mh_cli/bin/mhtk.dart extract --project out/fr                  # detect and import the text tables
 dart run apps/mh_cli/bin/mhtk.dart import --project out/fr --from ./dump --file 17   # apply a mhtools dump folder to one file
+dart run apps/mh_cli/bin/mhtk.dart budget --project out/fr --file 17                 # size budget of one file
+dart run apps/mh_cli/bin/mhtk.dart build --project out/fr --target iso               # write translations into a copy of the ISO
 dart run apps/mh_cli/bin/mhtk.dart status --project out/fr                   # files, strings, translations by status
 ```
 
