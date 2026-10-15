@@ -2,9 +2,9 @@
 
 ## Phase en cours
 
-Phase 0 — Fondations (`mh_binary`, `mh_iso`, chiffrement `mh_databin`)
+Phase 3 — Studio (`apps/mh_studio`, Flutter desktop). Phases 0 à 2 validées (voir les sections « Validation » en fin de fichier).
 
-Critère de sortie : `encrypt(decrypt(x, lba), lba) == x` sur 100 % de `DATA.BIN` (test `integration`).
+Critère de sortie : traduction d'un fichier complet sans sortir de l'outil (ARCHITECTURE §12), puis build et ISO qui démarre.
 
 ## Tâches (une ligne = une session, ≤ ~300 lignes de code)
 
@@ -53,15 +53,39 @@ Découpage fait le 2026-10-15 depuis ARCHITECTURE §7, §8.1–8.3, §9, §5.3. 
 - [x] **T22c CLI `mhtk budget` et `build`** [réel] — `budget_command.dart` (`--file`, `--policy`, `--min-status draft` ; orig/slot/rebuilt/marge/statut, exit 1 si dépassement), `build_command.dart` (`--target iso`, `--out` défaut `out/MHP3.<locale>.iso`, `--profile`, `--min-status translated` ; exit 0 si `ok`/`nothing_to_build`), `budget_build_support.dart` (`loadValidatedFiles`, dép. `yaml`), `config/validated_files.yaml` créé (liste vide), `buildPatch(onlyFileIds)`. Cibles `plugin`/`delta` refusées. Tests sur ISO synthétique. **Essai réel** (projet dans `out/`, ISO source en lecture seule, script `apps/mh_cli/tool/make_demo_dump.dart`) : fichier 17, un slot raccourci de moitié → `import` 1 traduction, `budget` ok (471 028/471 040 octets, marge 12), `build` ok et vérifié, `out/demo.iso` même taille que la source, octets différents seulement dans le slot du fichier 17 (0x8A7A00C–0x8AECBEA). **Non testé en jeu.** `scripts/check.sh apps/mh_cli` = OK. Reste : commit (humain).
 - [x] **T23 Build réel minimal** [en jeu] — réalisé via T22c : un slot du fichier 17 raccourci de moitié, `mhtk build` → `out/demo.iso`, vérifié par la relecture de l artefact. Testé par l humain dans PPSSPP : le jeu démarre et se lance normalement, aucun plantage.
 
+## Phase 3 — Studio (tâches)
+
+Critère de sortie : traduction d'un fichier complet sans sortir de l'outil (ARCHITECTURE §12). Le studio ne contient aucune logique métier (skill `studio-ui`) : ce qu'il lui faut côté cœur est fait **avant** les écrans (T24-T27), dans l'ordre. Découpage du 2026-10-15, aucune tâche commencée.
+
+Préalables côté cœur (Dart pur, testables sans Flutter) :
+
+- [ ] **T24 `Project`/`IsoSession` partagés** [fixtures] — déplacer `apps/mh_cli/lib/src/project.dart` (`Project`, `IsoSession`) dans `mh_build` pour que CLI et studio les partagent (le studio ne dépend pas de `mh_cli`). Refactor sans changement de comportement ; les tests CLI existants servent de filet.
+- [ ] **T25 Repositories `mh_tdb`** [fixtures] — `TranslationRepository` : liste des fichiers avec progression par statut, slots d'un fichier paginés (source, traduction, alias), sauvegarde d'une traduction avec concurrence optimiste (`revision`, §7.4), changement de statut. Remplace les requêtes ad hoc de la CLI à terme. Tests en base mémoire.
+- [ ] **T26 Mesure de budget incrémentale** [fixtures] — `FileBudgetTracker` dans `mh_budget` (§8.3) : taille reconstruite d'un fichier mise à jour en O(1) quand une chaîne change, alias respectés. Invariant : égal à `measureStringTableA` / `encode().length` sur modèles générés (test de propriété). Marge restante via `evaluateFileBudget`.
+- [ ] **T27 Schéma v2 : historique et glossaire** [fixtures] — migration drift v1 → v2 : `translation_history` (copie de chaque révision), `glossary_term` (§7.2) ; `GlossaryRepository` (CRUD, termes obligatoires). `comment` et `length_profile` restent reportés (phase 5 / 4).
+
+Application (Flutter, après T24-T27) :
+
+- [ ] **T28 Environnement Flutter et squelette `mh_studio`** [compilé] — `fvm` 4.3.1 est installé, **Flutter ne l'est pas** (`.fvm/flutter_sdk` absent). Lancer `pwsh scripts/setup_studio.ps1` (télécharge le SDK, crée `apps/mh_studio`). **Dépendances à proposer avant ajout** (licence, justification) : `flutter_riverpod`, `riverpod_annotation`, `riverpod_generator`, `go_router`, SQLite pour Flutter (`sqlite3_flutter_libs`/`drift_flutter`), `file_picker`. Fiche `docs/DECISIONS/`. Coquille : Material 3 sombre, `go_router`, ouverture d'un dossier projet (`project.json`), provider `TdbDatabase`.
+- [ ] **T29 Écran « liste des fichiers »** [fixtures] — ID, libellé, progression, jauge `rebuilt/strict/slot` (provider sur T25/T26). Liste virtualisée. Tests de widgets.
+- [ ] **T30 Éditeur : source | cible** [fixtures] — édition d'une chaîne, sauvegarde avec `revision` (conflit → message), statuts, saut de ligne en chip non éditable, jauge d'octets du fichier en direct (debounce 150 ms), alias en lecture seule. Tests de widgets (jauge qui passe au rouge).
+- [ ] **T31 Glossaire et linter de traduction** [fixtures] — écran glossaire (T27), panneau dans l'éditeur, linter §10.1 : même multiensemble de jetons (`\n`), termes obligatoires, espaces/ponctuation française (insécables avant `: ; ! ?` seulement si la police le permet : phase 4, donc avertissement désactivé par défaut).
+- [ ] **T32 Mémoire de traduction** [fixtures] — correspondances exactes puis approximatives (§7.6). **Risque** : FTS5 n'est pas garanti dans `winsqlite3.dll` ; prévoir d'abord une similarité par trigrammes en Dart sur la table `translation`, FTS5 plus tard. Panneau de suggestions dans l'éditeur.
+- [ ] **T33 Import/export dans le studio** [fixtures] — import d'un dossier de dump mhtools (T20 + `file_picker`), export d'un fichier au format mhtools ; CSV/TSV reportés.
+- [ ] **T34 Écran « build »** [fixtures] — choix de cible `iso`, politique, statut minimal ; `runBuild` hors du fil UI (isolate), rapport (`BuildRun`) affiché par fichier ; historique des lignes `build`.
+- [ ] **T35 Validation de la phase 3** [réel] — l'humain traduit un fichier complet (petit, ex. une des 7 tables des IDs 2813–2819) dans le studio, lance un build, teste l'ISO dans PPSSPP. Case de sortie de phase.
+
+Hors périmètre de la phase 3 : aperçu avec la police (phase 4), budget px/lignes (phase 4), serveur et rôles (phase 5), pré-traduction LLM (§7.6, optionnelle, à reprendre après T32).
+
 ## Fait
 
 - Squelette T0 vérifié [compilé] : Dart 3.9.0, `dart pub get` OK, `scripts/check.sh` = OK. Flutter/FVM absents (studio non créé).
 
 ## Questions ouvertes
 
-- **T15 / codes de contrôle** (2026-10-15) : sur 711 `string_table_a` détectés (15 051 slots, `local/explore/text_content.txt`), 100 % UTF-8 valide, **0 octet de contrôle** hors `\n`, 0 PUA, 0 alias, 0 littéral `<NEWLINE>`/`<EMPTY STRING>`. `config/control_codes.yaml` n'existe pas et rien ne justifie d'en inventer un. Tokens = `\n` seulement ? À trancher ; périmètre de T15 à redéfinir avant de coder.
-- **Faux positifs de détection : confirmés et corrigés** [réel] (explore-data, `local/explore/ascii_files.txt`) : les 703 fichiers hors IDs 17 et 2813–2819 ont `tablesCount = 0` (binaires de 2 Ko à 1,5 Mo). Critère proposé : `count >= 1`, au moins une table non nulle et un slot non vide. Détecteur du test T13 durci (table non nulle + slot non vide) ; `scripts/check.sh packages/mh_formats --integration` OK sur l ISO réelle : détectés = [17, 2813–2819], round-trip et `measure` OK. Le décodeur reste inchangé (accepte toujours tablesCount = 0).
-- Licence globale GPLv3+ validée par l'humain (T6). `MHP3_ISO` et `local/MHP3.iso` encore absents.
+- ~~**T15 / codes de contrôle**~~ **Tranché (T15 : jetons = texte + saut de ligne).** (2026-10-15) : sur 711 `string_table_a` détectés (15 051 slots, `local/explore/text_content.txt`), 100 % UTF-8 valide, **0 octet de contrôle** hors `\n`, 0 PUA, 0 alias, 0 littéral `<NEWLINE>`/`<EMPTY STRING>`. `config/control_codes.yaml` n'existe pas et rien ne justifie d'en inventer un. Tokens = `\n` seulement ? À trancher ; périmètre de T15 à redéfinir avant de coder.
+- ~~**Faux positifs de détection**~~ **Résolu (T13 durci, T22a `extract`).** [réel] (explore-data, `local/explore/ascii_files.txt`) : les 703 fichiers hors IDs 17 et 2813–2819 ont `tablesCount = 0` (binaires de 2 Ko à 1,5 Mo). Critère proposé : `count >= 1`, au moins une table non nulle et un slot non vide. Détecteur du test T13 durci (table non nulle + slot non vide) ; `scripts/check.sh packages/mh_formats --integration` OK sur l ISO réelle : détectés = [17, 2813–2819], round-trip et `measure` OK. Le décodeur reste inchangé (accepte toujours tablesCount = 0).
+- Licence globale GPLv3+ validée par l humain (T6). L ISO réelle est disponible dans `local/MHP3.iso`.
 - `apps/mh_studio` : créé par `pwsh scripts/setup_studio.ps1` (FVM). Les deps Flutter (Riverpod, etc.) seront proposées avant ajout. `apps/mh_patcher` et `server/mh_server` restent à créer à leur phase.
 - `scripts/check.sh` appelle `dart`/`flutter` : les lancer avec `.fvm/flutter_sdk/bin` dans le PATH (le Dart de FVM sert pour tout le workspace).
 - `lints: ^5.0.0` et `test: ^1.25.0` supposent Dart ≥ 3.6 ; à confirmer avec `dart --version`.
