@@ -2,7 +2,7 @@
 
 ## Phase en cours
 
-Phase 4 — Affichage (police, budget en pixels/lignes, tests PPSSPP) : tâches T36 à T45 ci-dessous (phase 3 validée, voir « Validation phase 3 »).
+Pré-traduction par IA (tâches TA1 à TA9, fournisseur local LM Studio d’abord), puis Phase 4 — Affichage (police, budget en pixels/lignes, tests PPSSPP : tâches T36 à T45). Phase 3 validée, voir « Validation phase 3 ».
 
 Critère de sortie : rapport de débordement en pixels fiable sur les menus (ARCHITECTURE §12).
 
@@ -79,6 +79,33 @@ Application (Flutter, après T24-T27) :
 
 Hors périmètre de la phase 3 : aperçu avec la police (phase 4), budget px/lignes (phase 4), serveur et rôles (phase 5), pré-traduction LLM (§7.6, optionnelle, à reprendre après T32).
 
+## Pré-traduction par IA (avant la phase 4) — tâches
+
+Objectif : l'utilisateur ne lit pas le japonais ; le studio doit **proposer des traductions automatiques**, toujours en statut `draft`, à relire (ARCHITECTURE §7.6 : « Pré-traduction automatique optionnelle (LLM local ou cloud), toujours en statut `draft`, avec le contexte (fichier, table, chaînes voisines, glossaire) et la contrainte de budget dans la consigne »). Demande de l'humain du 2026-10-15 : à faire **avant la phase 4**, **fournisseur local LM Studio d'abord**. Découpage du 2026-10-15, aucune tâche commencée. Les tâches TA* ne renumérotent pas T36-T45.
+
+**État de la machine (constaté le 2026-10-15, lecture seule).** LM Studio est installé (`~/.lmstudio`, CLI `lms.exe`). Modèles de langage présents : `google/gemma-4-26b-a4b-qat` (15,6 Go) et `qwen/qwen3.8-27b` (17,7 Go) ; plongements `text-embedding-nomic-embed-text-v1.5`. **Le serveur local n'est pas démarré** (`lms server status`). Qualité réelle de ces modèles en japonais → français : **inconnue**, à mesurer (TA7).
+
+**Principes (non négociables).**
+- Résultats **toujours en `draft`** ; une traduction `translated`/`reviewed`/`locked` n'est jamais écrasée sans option explicite. Un build « nightly » ne prend que `translated` : rien d'automatique n'entre dans l'ISO sans relecture humaine.
+- **Le texte du jeu ne sort pas de la machine par défaut** : endpoint local uniquement ; un endpoint distant exige une confirmation explicite (envoi irréversible vers un tiers, ARCHITECTURE §13). Jamais de texte du jeu dans les journaux, rapports ni messages d'erreur ; la clé d'API éventuelle ne va ni dans `project.json`, ni dans la base, ni dans le dépôt.
+- Pas de nouvelle dépendance prévue : client HTTP en `dart:io`. Tests sans réseau (serveur HTTP local factice).
+- Les contrôles existants font foi : `lintTranslation` (sauts de ligne, termes obligatoires), budget d'octets (`FileBudgetTracker`).
+
+- [ ] **TA1 Cadrage et vérification de LM Studio** [compilé] — fiche `docs/DECISIONS/0006-pretraduction-ia.md` (nouveau paquet pur Dart `packages/mh_translate`, placé entre `mh_tdb` et `mh_build` ; format des échanges ; politique de confidentialité ci-dessus ; statut `draft` ; alternatives rejetées). **Vérifier sur la machine** (action humaine : `lms server start` et chargement d'un modèle) : adresse et port de l'API locale (`http://localhost:1234/v1` supposé, **non vérifié**), `GET /v1/models`, forme exacte d'une réponse `POST /v1/chat/completions` (champs, sortie structurée disponible ou non). Ne rien coder avant ces constats (AGENTS.md §4.1).
+- [ ] **TA2 Client de chat (`mh_translate`)** [fixtures] — `ChatClient` (interface : messages → texte) et `OpenAiCompatibleClient` (`dart:io` `HttpClient`), délais d'attente, erreurs typées (serveur absent, modèle non chargé, réponse invalide, contexte dépassé), liste des modèles, aucune journalisation des corps de requête/réponse. Tests contre un `HttpServer` local factice dans le test (aucun réseau réel).
+- [ ] **TA3 Prompt, lots et analyse de la réponse** [fixtures] — construction du message : consigne système (jeu, ton, **conserver les sauts de ligne, ne pas ajouter de marqueurs**), lots de N chaînes avec identifiants, **glossaire** (termes de `matchGlossary` pour le lot, obligatoires en tête), **chaînes voisines** pour le contexte, **budget par chaîne** (octets de la source par défaut) ; réponse en tableau JSON `{id, texte}` ; analyse tolérante (JSON entouré de texte, chaînes manquantes ou en trop) ; découpage des lots selon une estimation de jetons. Tests avec un client scripté ; le contenu des tests est synthétique.
+- [ ] **TA4 Moteur de pré-traduction** [fixtures] — `preTranslateFile` : sélection des chaînes (non traduites, non alias ; option : aussi les `draft`), lots, validation de chaque résultat par `lintTranslation` et par le budget d'octets (un seul nouvel essai avec message correctif, puis chaîne signalée « échec » et laissée intacte), enregistrement via `TranslationRepository.saveTranslation` en `draft` (concurrence optimiste respectée, historique écrit), rapport (traduites / ignorées / échecs / constats), progression et **annulation** coopérative. Reprise idempotente : relancer ne retraduit pas ce qui l'est déjà. Tests : refus d'écraser `translated`, alias ignorés, échec isolé sans perte du reste.
+- [ ] **TA5 CLI `mhtk pretranslate`** [réel] — `--project --file <id> [--endpoint] [--model] [--limit N] [--dry-run] [--include-drafts]` ; `--dry-run` affiche nombre de chaînes, lots et jetons estimés **sans rien envoyer** ; tout endpoint hors `localhost`/`127.0.0.1`/`[::1]` exige `--allow-remote`. Aucune chaîne du jeu affichée. **Essai réel** sur 5 à 10 chaînes du plus petit fichier (#2819) avec LM Studio, serveur lancé par l'humain.
+- [ ] **TA6 Studio : « Pré-traduire »** [fixtures] — dans l'éditeur : bouton pour le fichier entier ou la chaîne sélectionnée ; dialogue (endpoint par défaut LM Studio, modèle choisi dans `/v1/models`, portée, **avertissement + confirmation** pour un endpoint distant, estimation avant envoi) ; progression et **annulation** ; l'éditeur, la liste et la mémoire se rafraîchissent ; réglages (endpoint, modèle) dans un fichier du projet **sans clé**. Les traductions arrivent en `draft` et sont marquées comme générées. Tests de widgets avec moteur factice.
+- [ ] **TA7 Évaluation des modèles et protocole** [réel] — comparer `gemma-4-26b-a4b-qat` et `qwen3.8-27b` (et tout autre modèle que l'humain installe) sur un même échantillon (≈ 50 chaînes de #2819) : vitesse, **taux de chaînes sans constat du linter**, respect du budget, cohérence du glossaire ; l'humain ne lit pas le japonais, la qualité se juge par **rétro-traduction** (japonais → français → relecture de cohérence) et lecture du français ; choix du modèle et de la température par défaut ; protocole dans `docs/QA_PRETRADUCTION.md`. Sans cette tâche, aucune confiance dans la qualité n'est justifiée.
+- [ ] **TA8 [optionnel] Amorçage du glossaire** [fixtures] — l'humain ne peut pas constituer seul un glossaire de noms (monstres, objets, lieux) : proposer des **termes candidats** (séquences fréquentes extraites des sources, traduction proposée par le modèle) à valider un par un dans l'écran Glossaire ; jamais ajoutés sans validation.
+- [ ] **TA9 [optionnel, plus tard] Fournisseur distant** [fixtures] — endpoint en ligne avec clé lue dans une **variable d'environnement** (jamais enregistrée), confirmation à chaque session, journal sans texte du jeu. Hors périmètre tant que l'humain ne le demande pas.
+
+**Questions ouvertes pour l'humain** :
+1. Peux-tu démarrer le serveur LM Studio (`lms server start`) et charger un modèle pour TA1 ? Lequel préfères-tu essayer en premier (Gemma 4 26B-A4B ou Qwen 3.8 27B) ?
+2. Combien de temps de calcul acceptes-tu par fichier (le plus petit a 101 chaînes, le plus grand 9 140) ? Cela décide de la taille des lots et du besoin d'une file en arrière-plan.
+3. Souhaites-tu TA8 (aide à la constitution du glossaire) ?
+
 ## Phase 4 — Affichage (tâches)
 
 Critère de sortie (ARCHITECTURE §12) : **rapport de débordement en pixels fiable sur les menus** (budget niveaux 3 et 4, §8.4), mesuré contre le rendu réel dans PPSSPP. Découpage du 2026-10-15 depuis ARCHITECTURE §6.4, §8.4, §10.2 et §13, aucune tâche commencée.
@@ -114,6 +141,9 @@ Hors périmètre de la phase 4 : serveur et rôles (phase 5), quêtes `quest_mib
 
 ## Questions ouvertes
 
+- **Pré-traduction IA — n° 1 (TA1)** : démarrer `lms server start` et charger un modèle (Gemma 4 26B-A4B ou Qwen 3.8 27B) ; adresse/port de l'API à vérifier sur la machine.
+- **Pré-traduction IA — n° 2 (TA4/TA6)** : temps de calcul acceptable par fichier (101 à 9 140 chaînes) → taille des lots, file en arrière-plan.
+- **Pré-traduction IA — n° 3 (TA8)** : veux-tu une aide à la constitution du glossaire ?
 - **Phase 4 — n° 1 (bloquant pour T36/T42)** : qu'as-tu vu à l'écran, en jeu, avec le texte latin du build de T35 (lisible / manquant / corrompu ; accents) ?
 - **Phase 4 — n° 2 (T44)** : version de PPSSPP utilisée ; installation d'une édition avec `PPSSPPHeadless` acceptée ?
 - **Phase 4 — n° 3 (T39/T45)** : écrans prioritaires pour les profils (menus, boutique, forge, quêtes, dialogues).
