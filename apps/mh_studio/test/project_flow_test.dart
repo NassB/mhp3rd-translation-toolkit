@@ -5,9 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mh_build/mh_build.dart';
 import 'package:mh_studio/app/app.dart';
+import 'package:mh_studio/features/files/application/files_providers.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
-Widget app() => const ProviderScope(child: StudioApp());
+Widget app() => ProviderScope(
+  overrides: [
+    // Pas d'isolate ni d'ISO dans ce test.
+    fileBudgetsProvider.overrideWith((ref) async => const <int, FileBudget>{}),
+  ],
+  child: const StudioApp(),
+);
 
 /// Projet minimal : project.json + base SQLite vide (schéma créé).
 Future<String> makeProject(Directory tmp) async {
@@ -28,7 +35,17 @@ Future<String> makeProject(Directory tmp) async {
 void main() {
   late Directory tmp;
   setUp(() => tmp = Directory.systemTemp.createTempSync('mh_studio_test'));
-  tearDown(() => tmp.deleteSync(recursive: true));
+  tearDown(() async {
+    // La base se ferme en asynchrone ; Windows refuse de supprimer un fichier ouvert.
+    for (var i = 0; i < 20; i++) {
+      try {
+        tmp.deleteSync(recursive: true);
+        return;
+      } on FileSystemException {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    }
+  });
 
   testWidgets('home asks for a project folder', (tester) async {
     await tester.pumpWidget(app());
@@ -76,10 +93,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Version : TEST'), findsOneWidget);
-    expect(find.text('Locale : fr'), findsOneWidget);
-    expect(find.text('Fichiers : 0'), findsOneWidget);
-    expect(find.textContaining('untranslated'), findsOneWidget);
+    expect(find.text('Projet · TEST · fr'), findsOneWidget);
+    expect(find.textContaining('Aucun fichier import'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('close-project')));
     await tester.pumpAndSettle();

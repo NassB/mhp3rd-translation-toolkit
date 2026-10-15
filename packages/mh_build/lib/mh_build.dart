@@ -2,6 +2,7 @@
 library;
 
 export 'src/build_patch.dart';
+export 'src/file_budgets.dart';
 export 'src/project.dart';
 export 'src/run_build.dart';
 
