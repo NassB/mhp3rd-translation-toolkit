@@ -124,6 +124,6 @@ This project ports or builds on the following GPLv3 reference work:
 - [mhef](https://github.com/svanheulen/mhef) by Seth VanHeulen (`DataCipher`)
 - [mhp3-translation-tools](https://github.com/npdawson/mhp3-translation-tools) by npdawson (ISO patching)
 
-The toolkit as a whole is intended to be released under **GPLv3 or later**. Ported files carry the GPLv3 header and name their origin. See [`docs/DECISIONS/0001-licences.md`](docs/DECISIONS/0001-licences.md). A top-level `LICENSE` file has not been added yet.
+The toolkit as a whole is intended to be released under **GPLv3 or later**. Ported files carry the GPLv3 header and name their origin. See [`docs/DECISIONS/0001-licences.md`](docs/DECISIONS/0001-licences.md). The full license text is in [`LICENSE`](LICENSE).
 
 This is an unofficial fan project, not affiliated with or endorsed by Capcom.
