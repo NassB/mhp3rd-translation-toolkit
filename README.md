@@ -2,7 +2,7 @@
 
 A translation and modding toolkit for **Monster Hunter Portable 3rd** (PSP, `ULJM-05800`) and its PS3 HD edition (`NPJB-40001`), written in Dart.
 
-> **Status: early development (Phase 2 of 6 done).** The ISO reader, the `DATA.BIN` cipher/index and the `string_table_a` text codec exist and are tested on synthetic fixtures. There is no usable translation workflow yet. See [Project status](#project-status).
+> **Status: early development (Phase 3 of 6 done).** The ISO reader, the `DATA.BIN` cipher/index and the `string_table_a` text codec exist and are tested on synthetic fixtures. There is no usable translation workflow yet. See [Project status](#project-status).
 
 ## What it does (target workflow)
 
@@ -113,7 +113,7 @@ Details for contributors and coding agents: [`AGENTS.md`](AGENTS.md).
 | 0 | `mh_binary`, `mh_iso`, `mh_databin` cipher | Done. Round trip validated on a real ISO |
 | 1 | `string_table_a` codec, mhtools import/export | In progress: decoder and encoder done on fixtures; real-data round trip done; in-memory mhtools text import/export done (fixtures); text tokens (text + newline) done; only 8 real text tables exist (IDs 17, 2813–2819); phase exit validated |
 | 2 | Translation DB, CLI, byte budget, ISO build | Done: drift DB, budget levels 1-2, patch/ISO build with verification, CLI (`init`, `extract`, `import`, `budget`, `build`, `status`); a patched ISO boots in PPSSPP |
-| 3 | Studio app | Planned |
+| 3 | Studio app | Done: Flutter desktop studio (project, file list with byte gauges, editor with drafts, optimistic saves, glossary, linter, translation memory, mhtools import/export, build screen); validated by the maintainer on a full file, from translation to a built ISO |
 | 4 | Font, pixel/line budget, PPSSPP tests | Planned |
 | 5 | Collaborative server | Planned |
 | 6 | Quests, GIM, HD version | Planned |
