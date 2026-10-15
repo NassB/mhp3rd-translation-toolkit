@@ -6,6 +6,7 @@ String lintMessage(LintIssue i) => switch (i.kind) {
   LintKind.emptyTranslation => 'Traduction vide.',
   LintKind.newlineCount =>
     'Nombre de sauts de ligne différent de la source (${i.detail}).',
+  LintKind.controlCodes => 'Codes ~Xnn différents de la source (${i.detail}).',
   LintKind.nulChar => 'Caractère NUL interdit.',
   LintKind.edgeWhitespace =>
     i.detail == 'leading'

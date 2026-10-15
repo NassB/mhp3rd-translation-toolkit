@@ -74,6 +74,12 @@ void main() {
     Map<String, Object?> userJson(List<ChatMessage> m) =>
         (jsonDecode(m[1].content) as Map).cast<String, Object?>();
 
+    test('the rules ask to keep ~Xnn control codes untouched', () {
+      final m = buildMessages(batchOf([unit(1, '~C02あ~C00', maxBytes: 50)]));
+      expect(m[0].content, contains('~C00'));
+      expect(m[0].content, contains('recopie-les tels quels'));
+    });
+
     test('system rules and a JSON user message with real newlines', () {
       final m = buildMessages(
         batchOf([unit(7, 'ありがとう\nございます。', maxBytes: 40)]),

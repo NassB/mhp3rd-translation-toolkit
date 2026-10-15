@@ -1,9 +1,11 @@
 // Linter de traduction (docs/ARCHITECTURE.md §10.1 : tokens identiques,
 // glossaire, espaces, ponctuation française).
 //
-// Les seuls jetons du texte réel sont le texte et le saut de ligne (T15) :
-// « même multiensemble de jetons » revient à « même nombre de sauts de
-// ligne ». Aucune règle ne modifie le texte ; ce sont des avertissements.
+// Les jetons du texte réel sont le texte, le saut de ligne (T15) et les codes
+// `~Xnn` (1 197 chaînes sur 15 051 : couleurs `~C..`, boutons `~B..`, constat
+// du 2026-10-15 ; T15 ne cherchait que des octets de contrôle) :
+// « même multiensemble de jetons » = même nombre de sauts de
+// ligne et mêmes codes. Aucune règle ne modifie le texte ; ce sont des avertissements.
 
 /// Gravité d'un [LintIssue].
 enum LintSeverity {
@@ -24,6 +26,9 @@ enum LintKind {
 
   /// Nombre de sauts de ligne différent de la source.
   newlineCount,
+
+  /// Codes `~Xnn` (couleurs, boutons…) différents de la source.
+  controlCodes,
 
   /// Octet NUL (terminerait la chaîne dans le jeu).
   nulChar,
@@ -126,6 +131,29 @@ List<LintIssue> lintTranslation({
     issues.add(const LintIssue(LintKind.nulChar, LintSeverity.error));
   }
 
+  final sc = controlCodesOf(source);
+  final tc = controlCodesOf(target);
+  if (sc.join() != tc.join()) {
+    final missing = [...sc];
+    for (final c in tc) {
+      missing.remove(c);
+    }
+    final extra = [...tc];
+    for (final c in sc) {
+      extra.remove(c);
+    }
+    issues.add(
+      LintIssue(
+        LintKind.controlCodes,
+        LintSeverity.error,
+        [
+          if (missing.isNotEmpty) 'missing ${missing.join(' ')}',
+          if (extra.isNotEmpty) 'extra ${extra.join(' ')}',
+        ].join('; '),
+      ),
+    );
+  }
+
   final sn = _count(source, '\n');
   final tn = _count(target, '\n');
   if (sn != tn) {
@@ -177,3 +205,10 @@ List<LintIssue> lintTranslation({
   }
   return issues;
 }
+
+final RegExp _controlCode = RegExp('~[A-Za-z][0-9A-Za-z]{2}');
+
+/// Codes `~Xnn` de [s], triés (multiensemble).
+List<String> controlCodesOf(String s) => [
+      for (final m in _controlCode.allMatches(s)) m.group(0)!,
+    ]..sort();

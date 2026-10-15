@@ -97,6 +97,11 @@ String systemPrompt(PromptOptions o) {
         '"\\n") ; n\'en ajoute et n\'en retire aucun. N\'ajoute aucun marqueur '
         'ni commentaire, et ne traduis pas les listes "context_before" et '
         '"context_after" : elles ne servent qu\'à comprendre la situation.',
+    'Le texte peut contenir des codes de mise en forme de la forme ~C00, ~C05, '
+        '~B00… (couleurs, boutons) : recopie-les tels quels, en même nombre, '
+        'sans les traduire ni les coller à un mot ; place chacun à l\'endroit '
+        'équivalent du texte traduit (un code de bouton remplace le bouton '
+        'dans la phrase).',
     '"max_bytes" est la longueur maximale de la traduction en octets UTF-8 '
         '(les lettres accentuées comptent pour 2) : ne la dépasse jamais. Le '
         'fichier du jeu a un budget d\'octets total : vise une longueur '

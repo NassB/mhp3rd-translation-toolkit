@@ -43,6 +43,9 @@ enum FailureReason {
   /// Nombre de sauts de ligne différent de la source.
   newlineCount,
 
+  /// Codes `~Xnn` différents de la source.
+  controlCodes,
+
   /// Contient un octet NUL.
   nulChar,
 
@@ -262,6 +265,12 @@ _Check _validate(
       case LintKind.newlineCount:
         reasons.add(FailureReason.newlineCount);
         hints.add('le texte doit contenir exactement $wantNl saut(s) de ligne');
+      case LintKind.controlCodes:
+        reasons.add(FailureReason.controlCodes);
+        hints.add(
+          'conserve exactement les codes ~Xnn de la source (${i.detail}), '
+          'sans les modifier',
+        );
       case LintKind.nulChar:
         reasons.add(FailureReason.nulChar);
         hints.add('supprime le caractère NUL');

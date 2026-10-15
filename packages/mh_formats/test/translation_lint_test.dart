@@ -26,6 +26,26 @@ void main() {
     expect(lintTranslation(source: '  ', target: ''), isEmpty);
   });
 
+  test('control codes ~Xnn must be kept (error), order aside', () {
+    const src = '~C02Texte~C00';
+    expect(lintTranslation(source: src, target: '~C02Text~C00'), isEmpty);
+    expect(lintTranslation(source: src, target: '~C00 x ~C02'), isEmpty);
+    final lost = lintTranslation(source: src, target: '~C02Texte');
+    expect(lost, [
+      const LintIssue(
+        LintKind.controlCodes,
+        LintSeverity.error,
+        'missing ~C00',
+      ),
+    ]);
+    final extra = lintTranslation(source: 'a', target: 'a~B00');
+    expect(extra.single.detail, 'extra ~B00');
+    // Un code altéré = un manquant et un en trop.
+    final bent = lintTranslation(source: src, target: '~C2Texte~C00');
+    expect(bent.single.detail, startsWith('missing ~C02'));
+    expect(controlCodesOf('~C05 a ~B00 ~C05'), ['~B00', '~C05', '~C05']);
+  });
+
   test('newline count must match the source (error)', () {
     final i = lintTranslation(source: 'a\nb\nc', target: 'a\nb');
     expect(i, [
