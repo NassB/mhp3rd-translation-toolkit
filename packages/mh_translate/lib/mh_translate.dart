@@ -4,6 +4,7 @@ library;
 export 'src/ai_settings.dart';
 export 'src/batching.dart';
 export 'src/chat_client.dart';
+export 'src/evaluation.dart';
 export 'src/openai_compatible_client.dart';
 export 'src/pretranslate.dart';
 export 'src/prompt.dart';

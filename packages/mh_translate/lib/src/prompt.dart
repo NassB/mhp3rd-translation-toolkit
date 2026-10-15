@@ -14,11 +14,16 @@ import 'chat_client.dart';
 final class PromptOptions {
   /// Voir les champs.
   const PromptOptions({
+    this.sourceLanguage = 'japonais',
     this.targetLanguage = 'français',
     this.gameContext =
         'Monster Hunter Portable 3rd (jeu vidéo PSP de chasse aux monstres)',
     this.extraRules = const [],
   });
+
+  /// Langue des textes à traduire (« japonais » ; « français » pour la
+  /// rétro-traduction d'une évaluation).
+  final String sourceLanguage;
 
   /// Langue cible, en toutes lettres (« français », « anglais »…).
   final String targetLanguage;
@@ -82,7 +87,7 @@ JsonSchemaFormat translationSchema() => const JsonSchemaFormat(
 /// Consigne système.
 String systemPrompt(PromptOptions o) {
   final rules = [
-    'Tu traduis des textes du japonais vers le ${o.targetLanguage} pour le '
+    'Tu traduis des textes du ${o.sourceLanguage} vers le ${o.targetLanguage} pour le '
         'jeu ${o.gameContext}.',
     'Tu reçois un objet JSON avec une liste "items" (chacun : "id", "text", '
         '"max_bytes", éventuellement "fix"). Tu réponds uniquement par un objet '

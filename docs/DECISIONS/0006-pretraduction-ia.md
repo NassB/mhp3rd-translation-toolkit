@@ -108,3 +108,9 @@ Décision : le budget réel est celui du **fichier** (ARCHITECTURE.md §8.2, pol
 Mesure sur le même échantillon : ancienne règle 37 enregistrées / 13 refusées ; enveloppe **50 enregistrées / 0 refus**, 5 chaînes raccourcies, total final −17 octets (dans le budget).
 
 Limites : la règle suppose que l'original et la reconstruction non traduite ont la même taille (vérifié par l'aller-retour du codec) ; elle ne couvre pas les niveaux 3 et 4 (pixels, lignes : phase 4) ; la qualité des versions raccourcies n'est pas mesurée (TA7).
+
+## Addendum TA7 — modèle par défaut (2026-10-15)
+
+Mesures (docs/QA_PRETRADUCTION.md, 50 chaînes de #2819, deux modèles qui se jugent mutuellement) : Gemma 4 26B-A4B et Qwen 3.8 27B obtiennent la même note moyenne (4,46), aucun refus, budget respecté ; Gemma est 10 fois plus rapide (0,75 contre 7,55 s/chaîne ; ≈ 3 h contre ≈ 31 h pour 15 051 chaînes).
+
+Décision **provisoire** : modèle par défaut = `google/gemma-4-26b-a4b-qat`, Qwen disponible pour une seconde opinion. À confirmer par la relecture humaine du rapport local. Température 0,2 conservée, non évaluée. La comparaison de qualité entre les deux modèles n'est **pas** concluante (juges différents, échantillon réduit).
