@@ -157,7 +157,8 @@ final class FileListProvider
 
 String _$fileListHash() => r'98c4d222100645302dc1a73b58b88c649a48b43f';
 
-/// Budget courant de chaque fichier (jauges). Lit l'ISO et `DATA.BIN` : le
+/// Budget courant de chaque fichier (jauges). Conservé en vie (le calcul est long) ;
+/// recalculé quand le projet change. Lit l'ISO et `DATA.BIN` : le
 /// calcul tourne dans un isolate pour ne pas figer l'interface. Erreur (ISO ou
 /// registre introuvable…) : les jauges sont indisponibles, la liste reste
 /// affichée.
@@ -165,7 +166,8 @@ String _$fileListHash() => r'98c4d222100645302dc1a73b58b88c649a48b43f';
 @ProviderFor(fileBudgets)
 final fileBudgetsProvider = FileBudgetsProvider._();
 
-/// Budget courant de chaque fichier (jauges). Lit l'ISO et `DATA.BIN` : le
+/// Budget courant de chaque fichier (jauges). Conservé en vie (le calcul est long) ;
+/// recalculé quand le projet change. Lit l'ISO et `DATA.BIN` : le
 /// calcul tourne dans un isolate pour ne pas figer l'interface. Erreur (ISO ou
 /// registre introuvable…) : les jauges sont indisponibles, la liste reste
 /// affichée.
@@ -180,7 +182,8 @@ final class FileBudgetsProvider
     with
         $FutureModifier<Map<int, FileBudget>>,
         $FutureProvider<Map<int, FileBudget>> {
-  /// Budget courant de chaque fichier (jauges). Lit l'ISO et `DATA.BIN` : le
+  /// Budget courant de chaque fichier (jauges). Conservé en vie (le calcul est long) ;
+  /// recalculé quand le projet change. Lit l'ISO et `DATA.BIN` : le
   /// calcul tourne dans un isolate pour ne pas figer l'interface. Erreur (ISO ou
   /// registre introuvable…) : les jauges sont indisponibles, la liste reste
   /// affichée.
@@ -190,7 +193,7 @@ final class FileBudgetsProvider
         argument: null,
         retry: null,
         name: r'fileBudgetsProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -210,4 +213,66 @@ final class FileBudgetsProvider
   }
 }
 
-String _$fileBudgetsHash() => r'717b69fd092d293d272f8341da5799b1c2f26c4c';
+String _$fileBudgetsHash() => r'7d312e1b5a24fe59011bdaf13a9e7bf2b0ce579a';
+
+/// Budgets mis à jour par l'éditeur après un enregistrement : la liste des
+/// fichiers les préfère au calcul initial (obsolète jusqu'au prochain calcul).
+
+@ProviderFor(BudgetPatches)
+final budgetPatchesProvider = BudgetPatchesProvider._();
+
+/// Budgets mis à jour par l'éditeur après un enregistrement : la liste des
+/// fichiers les préfère au calcul initial (obsolète jusqu'au prochain calcul).
+final class BudgetPatchesProvider
+    extends $NotifierProvider<BudgetPatches, Map<int, FileBudget>> {
+  /// Budgets mis à jour par l'éditeur après un enregistrement : la liste des
+  /// fichiers les préfère au calcul initial (obsolète jusqu'au prochain calcul).
+  BudgetPatchesProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'budgetPatchesProvider',
+        isAutoDispose: false,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$budgetPatchesHash();
+
+  @$internal
+  @override
+  BudgetPatches create() => BudgetPatches();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(Map<int, FileBudget> value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<Map<int, FileBudget>>(value),
+    );
+  }
+}
+
+String _$budgetPatchesHash() => r'4fbe337a1b4e913a23599ad25f0a01ad61ee65d9';
+
+/// Budgets mis à jour par l'éditeur après un enregistrement : la liste des
+/// fichiers les préfère au calcul initial (obsolète jusqu'au prochain calcul).
+
+abstract class _$BudgetPatches extends $Notifier<Map<int, FileBudget>> {
+  Map<int, FileBudget> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<Map<int, FileBudget>, Map<int, FileBudget>>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<Map<int, FileBudget>, Map<int, FileBudget>>,
+              Map<int, FileBudget>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

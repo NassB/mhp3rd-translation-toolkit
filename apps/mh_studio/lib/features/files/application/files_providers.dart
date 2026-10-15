@@ -29,14 +29,29 @@ Future<List<FileProgress>> fileList(Ref ref) async {
   return repo == null ? const [] : repo.listFiles();
 }
 
-/// Budget courant de chaque fichier (jauges). Lit l'ISO et `DATA.BIN` : le
+/// Budget courant de chaque fichier (jauges). Conservé en vie (le calcul est long) ;
+/// recalculé quand le projet change. Lit l'ISO et `DATA.BIN` : le
 /// calcul tourne dans un isolate pour ne pas figer l'interface. Erreur (ISO ou
 /// registre introuvable…) : les jauges sont indisponibles, la liste reste
 /// affichée.
-@riverpod
+@Riverpod(keepAlive: true)
 Future<Map<int, FileBudget>> fileBudgets(Ref ref) async {
   final project = ref.watch(currentProjectProvider);
   final config = ref.watch(versionsConfigPathProvider);
   if (project == null) return const {};
   return Isolate.run(() => computeProjectBudgets(project, config: config));
+}
+
+/// Budgets mis à jour par l'éditeur après un enregistrement : la liste des
+/// fichiers les préfère au calcul initial (obsolète jusqu'au prochain calcul).
+@Riverpod(keepAlive: true)
+class BudgetPatches extends _$BudgetPatches {
+  @override
+  Map<int, FileBudget> build() {
+    // Repart de zéro quand le projet change ou se ferme.
+    ref.watch(currentProjectProvider);
+    return const {};
+  }
+
+  void put(FileBudget budget) => state = {...state, budget.fileId: budget};
 }

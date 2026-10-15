@@ -14,6 +14,7 @@ class FileListView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final files = ref.watch(fileListProvider);
     final budgets = ref.watch(fileBudgetsProvider);
+    final patches = ref.watch(budgetPatchesProvider);
     return files.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(child: Text('Erreur : $e')),
@@ -34,8 +35,11 @@ class FileListView extends ConsumerWidget {
             Expanded(
               child: ListView.builder(
                 itemCount: list.length,
-                itemBuilder: (context, i) =>
-                    _FileTile(file: list[i], budgets: budgets),
+                itemBuilder: (context, i) => _FileTile(
+                  file: list[i],
+                  budgets: budgets,
+                  patch: patches[list[i].id],
+                ),
               ),
             ),
           ],
@@ -46,16 +50,17 @@ class FileListView extends ConsumerWidget {
 }
 
 class _FileTile extends StatelessWidget {
-  const _FileTile({required this.file, required this.budgets});
+  const _FileTile({required this.file, required this.budgets, this.patch});
 
   final FileProgress file;
   final AsyncValue<Map<int, FileBudget>> budgets;
+  final FileBudget? patch;
 
   @override
   Widget build(BuildContext context) {
     final done = file.doneStrings;
     final total = file.totalStrings;
-    final b = budgets.value?[file.id];
+    final b = patch ?? budgets.value?[file.id];
     return ListTile(
       key: Key('file-${file.id}'),
       title: Text('#${file.id} · ${file.label ?? file.codec}'),
