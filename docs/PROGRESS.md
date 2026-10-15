@@ -2,9 +2,9 @@
 
 ## Phase en cours
 
-Phase 3 validée (voir « Validation phase 3 »). Phase 4 — Affichage (police, budget en pixels/lignes, tests PPSSPP) : à découper (ARCHITECTURE §12).
+Phase 4 — Affichage (police, budget en pixels/lignes, tests PPSSPP) : tâches T36 à T45 ci-dessous (phase 3 validée, voir « Validation phase 3 »).
 
-Critère de sortie : traduction d'un fichier complet sans sortir de l'outil (ARCHITECTURE §12), puis build et ISO qui démarre.
+Critère de sortie : rapport de débordement en pixels fiable sur les menus (ARCHITECTURE §12).
 
 ## Tâches (une ligne = une session, ≤ ~300 lignes de code)
 
@@ -79,12 +79,45 @@ Application (Flutter, après T24-T27) :
 
 Hors périmètre de la phase 3 : aperçu avec la police (phase 4), budget px/lignes (phase 4), serveur et rôles (phase 5), pré-traduction LLM (§7.6, optionnelle, à reprendre après T32).
 
+## Phase 4 — Affichage (tâches)
+
+Critère de sortie (ARCHITECTURE §12) : **rapport de débordement en pixels fiable sur les menus** (budget niveaux 3 et 4, §8.4), mesuré contre le rendu réel dans PPSSPP. Découpage du 2026-10-15 depuis ARCHITECTURE §6.4, §8.4, §10.2 et §13, aucune tâche commencée.
+
+**Constat de départ (à ne pas oublier).**
+- `third_party/` ne contient **aucune référence pour la police** : `mhtools/src/img/Gim.java` et `ExtractPluginD.java` ne traitent que des textures GIM ; `grep -i font` ne trouve rien. Où est la police du jeu (textures GIM de `DATA.BIN`, `EBOOT.BIN`, polices système PSP absentes de l'ISO) et comment les largeurs de glyphes sont codées est **inconnu**. Règle AGENTS.md §4.1 : on n'invente pas ; l'exploration vient avant tout codec.
+- ARCHITECTURE §8.4 prévoit explicitement l'alternative « table de largeurs … **calibrée à la main** » : c'est le plan de repli, praticable sans connaître le format de la police.
+- Risque §13 : « police sans glyphes accentués ». Le test de T35 a déjà produit des observations sur le texte latin en jeu, **non communiquées** (voir « Validation phase 3 ») : elles décident de la branche à suivre (T36).
+
+Ordre proposé (les `[?]` dépendent du résultat de T36/T37) :
+
+- [ ] **T36 Observation du texte latin en jeu et protocole de calibrage** [en jeu] — (a) l'humain décrit ce qu'il a vu en jeu avec le build de T35 : lisible / glyphes manquants / corrompu, accents inclus ; (b) outil de calibrage : `mhtk calibrate` (ou script) qui prépare un **projet séparé** (`out/calib`, locale distincte) dont les chaînes d'un petit fichier sont remplacées par des chaînes de test (alphabet ASCII complet, lettres accentuées, séries de `i`/`W`/`M`, chaînes de 5/10/20/40 caractères, chaînes à 1/2/3 sauts de ligne), en respectant le budget d'octets ; build → ISO de calibrage. L'humain le charge dans PPSSPP et rapporte (captures non publiées). Sans (a), **ne pas poursuivre** : c'est la question ouverte n° 1.
+- [ ] **T37 Exploration : où est la police ?** [réel] — `/explore-data` + `/ref-lookup` sur les fichiers de `DATA.BIN` et sur `PSP_GAME/SYSDIR/EBOOT.BIN` (lecture seule) : textures GIM susceptibles d'être des atlas de glyphes (via `Gim.java`), tables de largeurs, chaînes d'index de glyphes. Résultat attendu : soit une fiche `docs/FORMATS/font.md` **vérifiée** (structure, source, largeur par glyphe), soit « non trouvée » consigné en question ouverte. Si le format n'est documenté nulle part : **s'arrêter et demander** (AGENTS.md §10).
+- [ ] **T38 Métriques de glyphes (`mh_budget`)** [fixtures] — `GlyphMetrics` : avance en pixels par point de code, avance par défaut pour un point de code inconnu (avertissement), mesure d'une ligne ; sources interchangeables : (A) extraite de la police si T37 aboutit, (B) `config/font_metrics.yaml` **calibré à la main** à partir de T36 (point de code → px, plages). Tests de propriété sur des métriques synthétiques ; aucune police ni texture du jeu dans le dépôt.
+- [ ] **T39 Profils de longueur** [fixtures] — `config/profiles.yaml` (ARCHITECTURE §8.4 : `item_name`, `item_description`, `quest_title`, `dialogue` paginé, `menu_label`…, `max_px` à 0 tant que non mesuré), chargeur typé (`LengthProfile`), table `length_profile` et affectation d'un profil par fichier / table / chaîne (colonnes `game_file.context_profile` et `source_string.context_profile` déjà présentes ; migration drift v3 si la table est ajoutée). Rien n'est inventé : les profils vides ne produisent pas d'avertissement.
+- [ ] **T40 Budget niveaux 3 et 4** [fixtures] — `evaluateDisplay(text, profile, metrics)` dans `mh_budget` : largeur en pixels par ligne, nombre de lignes (sauts de ligne + retours automatiques à `max_px`), pagination ; avertissements `px_overflow` / `lines_overflow` / `unknown_glyph` au format du rapport §8.6 ; ils **n'arrêtent jamais un build** (§8.4). Le rapport de build (`BudgetReport`/JSON) les reprend. Tests : cas limites, UTF-8 multi-octets, texte japonais d'origine comme référence.
+- [ ] **T41 Éditeur : avertissements d'affichage et aperçu** [fixtures] — avertissements px/lignes dans le panneau de l'éditeur et le linter (`LintKind` dédiés), choix du profil d'une chaîne/table/fichier, **aperçu** à largeur max du profil avec les métriques (boîte, lignes, débordement en rouge). Aperçu avec les vrais glyphes du jeu seulement si T37 l'a permis. Tests de widgets.
+- [ ] **T42 [?] Accents / police** [en jeu] — **conditionnel à T36**. Si les accents ne s'affichent pas : options à soumettre à l'humain avant tout code (décision `docs/DECISIONS/`) : (1) politique de translittération sans accent (linter + glossaire), (2) patch de la texture/police (codec `gim`/`font`, ARCHITECTURE §6.4), (3) plugin CFW. Si les accents s'affichent : tâche supprimée.
+- [ ] **T43 Protocole de test PPSSPP et liste blanche** [en jeu] — `docs/QA_PPSSPP.md` : version de PPSSPP, écrans clés (menus, boutique, forge, liste de quêtes, dialogues), états de sauvegarde, grille de comparaison prédit/observé (px et lignes) ; alimentation de `config/validated_files.yaml` (politique `slot`) uniquement après test en jeu. Le test témoin de l'erreur `80110309` sur l'ISO d'origine y figure.
+- [ ] **T44 Automatisation des captures (étude)** [?] — faisabilité de `PPSSPPHeadless` (ARCHITECTURE §10.2) : démarrage d'un ISO, capture après N images, différence d'image. Sortie : verdict + script, ou « manuel seulement ». Dépend de l'installation de PPSSPP par l'humain ; aucune capture ni texte du jeu versionnés.
+- [ ] **T45 Calibrage des profils et validation de la phase 4** [en jeu] — mesure des `max_px` / `max_lines` des profils sur les menus à partir de l'ISO de calibrage, puis comparaison **prédit / observé** sur un jeu de chaînes de test des menus : l'humain confirme que le rapport de débordement est fiable. Case de sortie de phase.
+
+**Questions ouvertes pour l'humain avant de commencer** (aussi recopiées ci-dessous) :
+1. Qu'as-tu vu à l'écran, en jeu, avec le texte latin du build de T35 (lisible / manquant / corrompu, accents) ? → décide T36 et T42.
+2. Quelle version de PPSSPP utilises-tu, et acceptes-tu d'en installer une édition avec `PPSSPPHeadless` pour T44 ?
+3. Quels écrans sont prioritaires pour les profils (menus, boutique, forge, quêtes, dialogues) ?
+
+Hors périmètre de la phase 4 : serveur et rôles (phase 5), quêtes `quest_mib` et version HD (phase 6), textes codés en dur de l'exécutable (`eboot_strings`, hors v1).
+
 ## Fait
 
 - Squelette T0 vérifié [compilé] : Dart 3.9.0, `dart pub get` OK, `scripts/check.sh` = OK. Flutter/FVM absents (studio non créé).
 
 ## Questions ouvertes
 
+- **Phase 4 — n° 1 (bloquant pour T36/T42)** : qu'as-tu vu à l'écran, en jeu, avec le texte latin du build de T35 (lisible / manquant / corrompu ; accents) ?
+- **Phase 4 — n° 2 (T44)** : version de PPSSPP utilisée ; installation d'une édition avec `PPSSPPHeadless` acceptée ?
+- **Phase 4 — n° 3 (T39/T45)** : écrans prioritaires pour les profils (menus, boutique, forge, quêtes, dialogues).
+- **Phase 4 — police (T37)** : emplacement et format de la police du jeu inconnus, aucune référence dans `third_party/` ; repli prévu : métriques calibrées à la main (ARCHITECTURE §8.4).
 - ~~**T15 / codes de contrôle**~~ **Tranché (T15 : jetons = texte + saut de ligne).** (2026-10-15) : sur 711 `string_table_a` détectés (15 051 slots, `local/explore/text_content.txt`), 100 % UTF-8 valide, **0 octet de contrôle** hors `\n`, 0 PUA, 0 alias, 0 littéral `<NEWLINE>`/`<EMPTY STRING>`. `config/control_codes.yaml` n'existe pas et rien ne justifie d'en inventer un. Tokens = `\n` seulement ? À trancher ; périmètre de T15 à redéfinir avant de coder.
 - ~~**Faux positifs de détection**~~ **Résolu (T13 durci, T22a `extract`).** [réel] (explore-data, `local/explore/ascii_files.txt`) : les 703 fichiers hors IDs 17 et 2813–2819 ont `tablesCount = 0` (binaires de 2 Ko à 1,5 Mo). Critère proposé : `count >= 1`, au moins une table non nulle et un slot non vide. Détecteur du test T13 durci (table non nulle + slot non vide) ; `scripts/check.sh packages/mh_formats --integration` OK sur l ISO réelle : détectés = [17, 2813–2819], round-trip et `measure` OK. Le décodeur reste inchangé (accepte toujours tablesCount = 0).
 - Licence globale GPLv3+ validée par l humain (T6). L ISO réelle est disponible dans `local/MHP3.iso`.
