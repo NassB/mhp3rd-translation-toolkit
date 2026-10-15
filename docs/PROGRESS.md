@@ -26,10 +26,12 @@ Niveaux : `[compilé]`, `[fixtures]`, `[réel]`, `[en jeu]`.
 Critère de sortie : round-trip bit à bit de toutes les tables détectées (test `integration`).
 
 - [x] **T10 Référence `string_table_a`** [compilé] — `docs/FORMATS/string_table_a.md` écrit depuis mhtools/extractA.py (structure, divergences Java/Python, pièges). **Non vérifié sur fichiers réels** ; 4 questions ouvertes listées dans la fiche (unknownHeader, endData, alias, chaînes vides), à trancher en T11/T13 via `/explore-data`. Reste : commit (humain).
-- [ ] **T11 Décodeur `string_table_a`** — modèle immuable, offsets d'origine et alias conservés, champs inconnus conservés ; fixtures synthétiques.
+- [x] **T11 Décodeur `string_table_a`** [fixtures] — `decodeStringTableA` + modèle (`StringTableFile`/`StringTable`/`StringSlot`) dans `packages/mh_formats/lib/src/`, builder synthétique `test/support/string_table_a_builder.dart`. Layout vérifié sur l'ID 17 réel via `/explore-data` (script `packages/mh_databin/tool/explore_string_table_a.dart`) ; layout non canonique → `FormatError`. `tokens` reportés à T14. `scripts/check.sh packages/mh_formats` = OK. Décodage réel non encore lancé (T13). Reste : commit (humain).
 - [ ] **T12 Encodeur `string_table_a`** — `measure == encode().length`, round-trip, cas limites (table nulle, chaîne vide, alias, tronqué, hors bornes).
 - [ ] **T13 Test `integration` round-trip** — détection des tables via `/explore-data`, round-trip sur tous les fichiers réels (à valider par l'humain).
 - [ ] **T14 Import/export mhtools** — format d'échange texte compatible mhtools.
+
+- Un seul vrai `string_table_a` trouvé (ID 17) sur IDs 10–29 et 4700–4799 ; les mod IDs 0016/0017 de mhtools sont un GIM/GIF. Autres fichiers à trouver en T13 par scan de tout `DATA.BIN`. `endData` (1 043 octets) non identifié.
 
 ## Fait
 

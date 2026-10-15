@@ -1,7 +1,7 @@
 # Format `string_table_a` (codec A de mhtools)
 
-**Statut : documenté depuis les sources de référence, NON vérifié sur fichiers réels.**
-À confirmer en T13 (`/explore-data`). Fichiers concernés (commentaires mhtools) : `0016`, `0017`, `475x`, motif `(00[1-2][0-9]|47[0-9][0-9])`. Le fichier doit être déchiffré au préalable.
+**Statut : vérifié sur un seul fichier réel (ID 17 = mod `0010`, 49 tables, 9 140 chaînes).**
+Scan des IDs 10–29 et 4700–4799 (120 fichiers) : seul l'ID 17 a cette structure. Les mod IDs `0016`/`0017` du commentaire mhtools sont un GIM et un GIF ; le motif de fichiers mhtools ne s'applique pas. Autres candidats à chercher en T13 (scan de tout `DATA.BIN`). Le fichier doit être déchiffré au préalable.
 
 Sources :
 - `third_party/mhtools/src/dec/ExtractPluginA.java:36-129` (`extract`)
@@ -34,14 +34,23 @@ Offsets de chaînes : mhtools les ignore (seul K compte) et les recalcule (`4×K
 - Aucun alignement/padding entre tables ni chaînes dans le rebuild ; seulement le remplissage de fin jusqu'à la taille d'origine.
 - Charset : UTF-8 (pas de Shift-JIS). Codes de contrôle non traités : octets bruts.
 
-## Conséquences pour le codec (à trancher en T11)
+## Constats sur l'ID 17 réel (2026-10-15)
+
+- `unknownHeader` = 8.
+- Offsets de tables absolus ; offsets de chaînes **relatifs au début de leur table** ; premier offset = 4K+4 (47/47 tables non vides).
+- Aucun alias, aucun offset hors bornes ni non croissant (9 093 transitions contiguës).
+- Chaque table : offsets, sentinelle `-1`, chaînes, octet `0x00` ; table suivante collée, sans alignement.
+- `endData` = 1 043 octets, ne commence pas par des zéros, contenu non identifié.
+- 1 table nulle, 1 table K=0, 1 chaîne vide sur 9 140. Pour K=0, l'octet de fin est supposé à `table+4` (non confirmé octet par octet).
+
+## Conséquences pour le codec (implémentées en T11)
 
 - Décoder en s'appuyant sur les **offsets stockés** (pas sur le balayage de zéros) ; vérifier sur réel que les offsets sont bien contigus ou aliasés.
 - Conserver `unknownHeader`, offsets de chaînes, octets de fin et `endData` pour le round-trip bit à bit.
 
 ## Questions ouvertes
 
-- Sens de `unknownHeader` (0x04) et sens réel des offsets de chaînes dans les fichiers du jeu.
-- `endData` commence-t-il par des 0 dans les fichiers réels ?
-- Existence d'alias et de chaînes vides au milieu d'une table dans les fichiers réels.
+- Sens de `unknownHeader` (toujours 8 sur l'unique fichier) et nature de `endData`.
+- Alias / ordre non séquentiel : aucun cas observé ; le décodeur supporte les alias et refuse l'ordre non croissant.
+- Autres fichiers `string_table_a` du jeu (T13).
 - Signification des codes de contrôle (voir `config/control_codes.yaml`).
