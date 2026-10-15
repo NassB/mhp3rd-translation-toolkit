@@ -1,3 +1,4 @@
+// ignore_for_file: type=lint
 // Exploration (non versionnée en données) : structure string_table_a.
 import 'dart:io';
 import 'dart:typed_data';
@@ -26,10 +27,12 @@ Future<void> main(List<String> a) async {
   const c = DataCipher();
   final idx = DataBinIndex.build(readAt, img.dataBin.size);
   final out = StringBuffer();
-  final ids = a.length > 1 ? a.skip(1).map(int.parse).toList() : <int>[
-    for (var i = 10; i <= 29; i++) i,
-    for (var i = 4700; i <= 4799; i++) i,
-  ];
+  final ids = a.length > 1
+      ? a.skip(1).map(int.parse).toList()
+      : <int>[
+          for (var i = 10; i <= 29; i++) i,
+          for (var i = 4700; i <= 4799; i++) i,
+        ];
   final stat = <String, int>{};
   void inc(String k, [int n = 1]) => stat[k] = (stat[k] ?? 0) + n;
   final unkVals = <int, int>{};
@@ -56,7 +59,8 @@ Future<void> main(List<String> a) async {
         .map((b) => b.toRadixString(16).padLeft(2, '0'))
         .join();
     out.writeln('id=$id head=${hx(0, 32)} tail=${hx(d.length - 8, 8)}');
-    out.writeln('id=$id mod=${e.modId} slot=${e.slotBytes} n=$n unk=$unk ok=$plausible');
+    out.writeln(
+        'id=$id mod=${e.modId} slot=${e.slotBytes} n=$n unk=$unk ok=$plausible');
     if (!plausible) {
       inc('non plausible');
       continue;
@@ -103,7 +107,8 @@ Future<void> main(List<String> a) async {
           inc('1er offset == t+4K+4 (absolu)');
         } else {
           inc('1er offset autre');
-          out.writeln('  autre: id=$id t=$j off0=${offs[0]} K=$k rel=$firstRel');
+          out.writeln(
+              '  autre: id=$id t=$j off0=${offs[0]} K=$k rel=$firstRel');
         }
       }
       // contiguïté
@@ -136,7 +141,8 @@ Future<void> main(List<String> a) async {
         if (z + 1 > tableEnd) tableEnd = z + 1;
       }
       // octet de fin de table
-      if (tableEnd < d.length && d[tableEnd] == 0) inc('octet 0 après dernière chaîne');
+      if (tableEnd < d.length && d[tableEnd] == 0)
+        inc('octet 0 après dernière chaîne');
       final te = tableEnd + (tableEnd < d.length && d[tableEnd] == 0 ? 1 : 0);
       if (j + 1 < n) {
         var nx = -1;
@@ -168,7 +174,8 @@ Future<void> main(List<String> a) async {
     }
     endZeroLead[zl == endLen ? -1 : (zl == 0 ? 0 : 1)] =
         (endZeroLead[zl == endLen ? -1 : (zl == 0 ? 0 : 1)] ?? 0) + 1;
-    out.writeln('  endData len=$endLen leadingZeros=$zl nonzeroAfter=${endLen - zl}');
+    out.writeln(
+        '  endData len=$endLen leadingZeros=$zl nonzeroAfter=${endLen - zl}');
     out.writeln('  endHead=${hx(maxEnd, endLen < 32 ? endLen : 32)}');
     final nz = <int>[];
     for (var q = maxEnd + zl; q < d.length && nz.length < 1; q++) {
@@ -183,7 +190,8 @@ Future<void> main(List<String> a) async {
     out.writeln('${e.key}: ${e.value}');
   }
   out.writeln('unknownHeader: $unkVals');
-  out.writeln('endData (-1 tout zéro, 0 non nul dès début, 1 zéros puis données): $endZeroLead');
+  out.writeln(
+      'endData (-1 tout zéro, 0 non nul dès début, 1 zéros puis données): $endZeroLead');
   File('local/explore/string_table_a.txt').writeAsStringSync(out.toString());
   print(out.toString().split('STATS').last);
 }
