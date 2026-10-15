@@ -4,7 +4,7 @@
 // Usage : dart run apps/mh_cli/tool/make_demo_dump.dart <project> <outDir>
 import 'dart:io';
 
-import 'package:mh_cli/src/project.dart';
+import 'package:mh_build/mh_build.dart';
 import 'package:mh_formats/mh_formats.dart';
 
 Future<void> main(List<String> a) async {

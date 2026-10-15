@@ -1,9 +1,8 @@
 import 'dart:io';
 
 import 'package:mh_binary/mh_binary.dart';
+import 'package:mh_build/mh_build.dart';
 import 'package:mh_tdb/mh_tdb.dart';
-
-import 'project.dart';
 
 const String _usage = 'usage: mhtk init --iso <game.iso> --project <dir> '
     '[--locale fr] [--config config/game_versions.yaml]';

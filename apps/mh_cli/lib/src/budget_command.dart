@@ -6,7 +6,6 @@ import 'package:mh_build/mh_build.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
 import 'budget_build_support.dart';
-import 'project.dart';
 
 const String _usage = 'usage: mhtk budget --project <dir> --file <id> '
     '[--policy strict|slot] [--min-status draft] [--config ...] '

@@ -1,6 +1,8 @@
 /// CLI mhtk.
 library;
 
+export 'package:mh_build/mh_build.dart' show Project, defaultVersionsConfig;
+
 export 'src/budget_build_support.dart' show loadValidatedFiles, toolkitVersion;
 export 'src/budget_command.dart';
 export 'src/build_command.dart';
@@ -8,7 +10,6 @@ export 'src/extract_command.dart';
 export 'src/import_command.dart';
 export 'src/index_command.dart';
 export 'src/init_command.dart';
-export 'src/project.dart' show Project, defaultVersionsConfig;
 export 'src/status_command.dart';
 
 /// Nom du paquet (test de fumée).

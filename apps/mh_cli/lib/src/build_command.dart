@@ -5,7 +5,6 @@ import 'package:mh_build/mh_build.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
 import 'budget_build_support.dart';
-import 'project.dart';
 
 const String _usage = 'usage: mhtk build --project <dir> --target iso '
     '[--out out/MHP3.<locale>.iso] [--policy strict|slot] '
