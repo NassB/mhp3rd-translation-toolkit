@@ -2,6 +2,7 @@
 library;
 
 export 'src/file_budget.dart';
+export 'src/file_budget_tracker.dart';
 
 /// Nom du paquet (test de fumée).
 const String mhBudgetPackageName = 'mh_budget';
