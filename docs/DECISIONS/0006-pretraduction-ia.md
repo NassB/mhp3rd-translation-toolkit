@@ -94,3 +94,17 @@ Toutes les requêtes ci-dessous n'ont contenu que des **phrases japonaises synth
 - **Dépendance HTTP (`package:http`, `dio`)** : inutile pour deux requêtes JSON ; `dart:io` suffit.
 - **Écrire directement en `translated`** : contourne la relecture humaine, interdit par le principe « toujours en `draft` » (ARCHITECTURE.md §7.6).
 - **Mettre la pré-traduction dans `mh_build` ou `mh_tdb`** : mélange réseau et pipeline ; un paquet dédié garde `mh_tdb` sans accès réseau.
+
+## Addendum TA4b — budget d'octets : enveloppe du fichier (2026-10-15)
+
+Constat (TA5, fichier #2819, 50 premières chaînes, Gemma 4) : avec un plafond **par chaîne égal aux octets de la source**, 13 chaînes sur 50 (26 %) étaient refusées pour dépassement, alors que le fichier gardait 211 octets de marge. Un texte japonais pèse 3 octets par caractère ; une courte phrase latine peut donc dépasser sa source sans menacer le fichier.
+
+Décision : le budget réel est celui du **fichier** (ARCHITECTURE.md §8.2, politique `strict` : reconstruit ≤ original). Un fichier non traduit a exactement la taille de l'original ; le budget équivaut donc à « somme des écarts `octets(traduction) − octets(source)` ≤ 0 », calculable depuis la base seule.
+- plafond par chaîne **large** : `max(24, octets(source) × 2,5)` (bornes les dérives) ;
+- le moteur suit la somme des écarts (traductions existantes comprises, brouillons compris) ;
+- si le total dépasse après la traduction, une passe de **raccourcissement** redemande, dans l'ordre de croissance décroissante, des versions limitées à `max(octets(source), 16)`, jusqu'à ce que le total tienne ; une version n'est retenue que si elle est valide et plus courte ;
+- un dépassement final est **signalé** (`overBudgetBytes`, avertissement CLI), jamais caché ; les brouillons n'entrent pas dans un build.
+
+Mesure sur le même échantillon : ancienne règle 37 enregistrées / 13 refusées ; enveloppe **50 enregistrées / 0 refus**, 5 chaînes raccourcies, total final −17 octets (dans le budget).
+
+Limites : la règle suppose que l'original et la reconstruction non traduite ont la même taille (vérifié par l'aller-retour du codec) ; elle ne couvre pas les niveaux 3 et 4 (pixels, lignes : phase 4) ; la qualité des versions raccourcies n'est pas mesurée (TA7).

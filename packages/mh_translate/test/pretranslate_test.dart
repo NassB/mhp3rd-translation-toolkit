@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:mh_formats/mh_formats.dart';
@@ -230,7 +231,8 @@ void main() {
     await run(client);
     final req = client.requests.single;
     final byText = {for (final i in req.items) i['text']: i};
-    expect(byText[hello]!['max_bytes'], utf8.encode(hello).length);
+    // max(24, ceil(18 × 2,5)) : plafond large, l'enveloppe du fichier décide.
+    expect(byText[hello]!['max_bytes'], 45);
     expect(req.json['glossary'], [
       {'source': 'ハンター', 'target': 'Chasseur', 'mandatory': true},
     ]);
@@ -462,5 +464,130 @@ void main() {
     expect(withDrafts.candidates, 5);
     // Aucune écriture : rien n'a été traduit.
     expect((await stored())[hello], isNull);
+  });
+
+  // Réponses longues (octets) : hello 40, thanks 80, hunter 70, pen 55.
+  final longDict = {
+    hello: 'Bonjour a tous, tres chers amis de la chasse',
+    thanks: 'Merci beaucoup\npour votre aide precieuse et votre patience !',
+    hunter: 'Le Chasseur part explorer la grande foret ce matin',
+    pen: 'Ceci est un stylo tout a fait ordinaire, merci',
+  };
+
+  test('the file starts with a margin counted from existing translations',
+      () async {
+    final plan = await planPreTranslation(repo: repo, fileId: 17);
+    // goodbye +1 octet, water -9 octets : marge de 8.
+    expect(plan.budgetMarginBytes, 8);
+    final report = await run(ScriptedClient((r, _) => answer(r, dict)));
+    expect(report.startDeltaBytes, -8);
+    expect(report.endDeltaBytes, -51);
+    expect(report.withinBudget, isTrue);
+    expect(report.shortened, 0);
+    expect(report.overBudgetBytes, 0);
+  });
+
+  test('a short string may exceed its source while the file keeps room',
+      () async {
+    final client = ScriptedClient(
+      (r, _) =>
+          answer(r, {...dict, hello: 'Bonjour a tous, tres chers amis!!'}),
+    );
+    final report = await run(client);
+    // 33 octets pour une source de 18 : refusé avec l'ancien plafond.
+    expect(report.saved, 4);
+    expect(report.failed, isEmpty);
+    expect(report.withinBudget, isTrue);
+    expect(client.requests, hasLength(1)); // pas de passe de raccourcissement
+    expect((await stored())[hello]!.text, 'Bonjour a tous, tres chers amis!!');
+  });
+
+  test(
+      'when the file would exceed its original the biggest growth is shortened',
+      () async {
+    int len(String s) => utf8.encode(s).length;
+    // Ordre attendu : croissance décroissante (octets de la réponse longue
+    // moins octets de la source) ; arrêt dès que le total tient.
+    final order = [hello, thanks, hunter, pen]..sort(
+        (a, c) => (len(longDict[c]!) - len(c)).compareTo(
+          len(longDict[a]!) - len(a),
+        ),
+      );
+    var delta = -8 +
+        [for (final s in order) len(longDict[s]!) - len(s)]
+            .fold(0, (a, c) => a + c);
+    expect(delta, greaterThan(0), reason: 'le scénario doit dépasser');
+    var expectedShortened = 0;
+    for (final s in order) {
+      if (delta <= 0) break;
+      delta += len(dict[s]!) - len(longDict[s]!);
+      expectedShortened++;
+    }
+
+    final client = ScriptedClient((r, call) {
+      return call == 0 ? answer(r, longDict) : answer(r, dict);
+    });
+    final report = await run(client);
+    expect(client.requests, hasLength(2));
+    final shorten = client.requests[1];
+    expect(shorten.ids, [for (final s in order) idOf[s]]);
+    final first = shorten.items.first;
+    expect(first['fix'], contains('budget d’octets du fichier'));
+    expect(
+      first['max_bytes'],
+      max(len(order.first), 16),
+    ); // octets de la source
+
+    expect(report.shortened, expectedShortened);
+    expect(report.withinBudget, isTrue);
+    expect(report.endDeltaBytes, delta);
+    expect(report.clean, isTrue);
+    final s = await stored();
+    for (var i = 0; i < order.length; i++) {
+      final done = i < expectedShortened;
+      expect(s[order[i]]!.text, done ? dict[order[i]] : longDict[order[i]]);
+      expect(s[order[i]]!.revision, done ? 2 : 1);
+    }
+  });
+
+  test('an unfixable overshoot is reported, never hidden', () async {
+    final client = ScriptedClient((r, _) => answer(r, longDict));
+    final report = await run(client);
+    expect(client.requests, hasLength(2)); // une passe, sans effet
+    expect(report.shortened, 0);
+    expect(report.withinBudget, isFalse);
+    expect(report.overBudgetBytes, greaterThan(0));
+    expect(report.clean, isFalse);
+    expect(report.saved, 4); // les brouillons restent enregistrés
+  });
+
+  test('enforceFileBudget off keeps a single pass', () async {
+    final client = ScriptedClient((r, _) => answer(r, longDict));
+    final report = await run(
+      client,
+      options: const PreTranslateOptions(enforceFileBudget: false),
+    );
+    expect(client.requests, hasLength(1));
+    expect(report.withinBudget, isFalse);
+  });
+
+  test('a provider failure during the shortening pass is reported', () async {
+    final client = ScriptedClient((r, call) {
+      if (call == 0) return answer(r, longDict);
+      throw const TranslateError(TranslateErrorKind.timeout, 'late');
+    });
+    final report = await run(client);
+    expect(report.stoppedBy?.kind, TranslateErrorKind.timeout);
+    expect(report.saved, 4);
+    expect(report.withinBudget, isFalse);
+  });
+
+  test('the system prompt tells the model about the file byte budget',
+      () async {
+    final messages = buildMessages(
+      Batch([const TranslationUnit(id: 1, source: 'あ', maxBytes: 24)], 0),
+    );
+    expect(messages[0].content, contains('budget d\'octets total'));
+    expect(messages[0].content, contains('comparable'));
   });
 }

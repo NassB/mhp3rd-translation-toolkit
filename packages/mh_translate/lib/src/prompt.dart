@@ -93,8 +93,9 @@ String systemPrompt(PromptOptions o) {
         'ni commentaire, et ne traduis pas les listes "context_before" et '
         '"context_after" : elles ne servent qu\'à comprendre la situation.',
     '"max_bytes" est la longueur maximale de la traduction en octets UTF-8 '
-        '(les lettres accentuées comptent pour 2) : sois concis et reste '
-        'dessous.',
+        '(les lettres accentuées comptent pour 2) : ne la dépasse jamais. Le '
+        'fichier du jeu a un budget d\'octets total : vise une longueur '
+        'comparable à celle du texte source en octets UTF-8 et sois concis.',
     'Si "glossary" est présent, emploie la traduction indiquée pour chaque '
         'terme ; les termes marqués "mandatory" sont obligatoires.',
     'Si un item a un champ "fix", c\'est la correction attendue d\'un essai '

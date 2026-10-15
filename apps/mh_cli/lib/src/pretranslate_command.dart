@@ -145,7 +145,9 @@ Future<int> runPretranslate(
       ..writeln('file $fileId: ${plan.candidates} string(s) to translate in '
           '${plan.batches} batch(es), ~${plan.estimatedPromptTokens} prompt '
           'tokens; skipped: ${plan.skippedEmpty} empty, '
-          '${plan.skippedNoJapanese} without Japanese');
+          '${plan.skippedNoJapanese} without Japanese')
+      ..writeln('file byte budget: ${plan.budgetMarginBytes} byte(s) of '
+          'margin before this run');
     if (dryRun) {
       out.writeln('dry run: nothing was sent, nothing was written');
       return 0;
@@ -191,7 +193,16 @@ Future<int> runPretranslate(
           'warnings ${report.warnings}')
       ..writeln('tokens: prompt ${report.promptTokens}, completion '
           '${report.completionTokens}; ${report.batches} request(s) in '
-          '${DateTime.now().difference(started).inSeconds}s');
+          '${DateTime.now().difference(started).inSeconds}s')
+      ..writeln(
+        report.withinBudget
+            ? 'file byte budget: within the original (margin '
+                '${-report.endDeltaBytes} byte(s), ${report.shortened} '
+                'string(s) shortened)'
+            : 'WARNING: the file exceeds its original size by '
+                '${report.overBudgetBytes} byte(s): shorten some drafts in '
+                'the studio before promoting them',
+      );
     if (report.cancelled) {
       out.writeln('cancelled: ${report.unprocessed} string(s) not processed');
       return 1;
