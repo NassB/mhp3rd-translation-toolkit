@@ -1,7 +1,7 @@
 /// Erreur de base du toolkit (AGENTS.md §7).
 ///
-/// Sous-types : [FormatError], [CryptoError], [PatchError], [IsoError].
-/// `BudgetError` sera ajouté avec `mh_budget`.
+/// Sous-types : [FormatError], [CryptoError], [PatchError], [IsoError],
+/// [BudgetError].
 abstract class MhError implements Exception {
   /// Crée une erreur avec son [message] et le contexte optionnel
   /// ([offset] dans le flux, [fileId] mhtools base 1).
@@ -49,4 +49,34 @@ final class PatchError extends MhError {
 final class IsoError extends MhError {
   /// Voir [MhError].
   const IsoError(super.message, {super.offset, super.fileId});
+}
+
+/// Niveau de contrainte de budget dépassé (ARCHITECTURE.md §8).
+enum BudgetLevel {
+  /// §8.1 : taille alignée supérieure à l'emplacement dans `DATA.BIN`.
+  slot,
+
+  /// §8.2 : taille supérieure à la limite de la politique (`strict`/`slot`).
+  buffer,
+}
+
+/// Dépassement de budget bloquant (niveaux 1 et 2).
+final class BudgetError extends MhError {
+  /// [actualBytes] dépasse [limitBytes] au niveau [level].
+  const BudgetError(
+    super.message, {
+    required this.level,
+    required this.actualBytes,
+    required this.limitBytes,
+    super.fileId,
+  });
+
+  /// Niveau de contrainte violé.
+  final BudgetLevel level;
+
+  /// Taille mesurée en octets.
+  final int actualBytes;
+
+  /// Limite applicable en octets.
+  final int limitBytes;
 }
