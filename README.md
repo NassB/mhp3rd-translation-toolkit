@@ -33,7 +33,7 @@ packages/
   mh_databin/    DATA.BIN cipher, TOC, file index
   mh_formats/    format codecs (string_table_a; quest, pac, gim, font later)
   mh_budget/     length measurement (bytes / pixels / lines)      [planned]
-  mh_tdb/        translation database (drift/SQLite), repositories, glossary, translation memory
+  mh_tdb/        translation database (drift/SQLite), repositories, glossary, translation memory, bulk status changes
   mh_build/      build pipeline, ISO build with verification, project helpers
   mh_translate/  AI pre-translation: chat client for a local LLM (LM Studio), drafts only, glossary bootstrapping (candidate terms + proposed translations, validated one by one)
 apps/

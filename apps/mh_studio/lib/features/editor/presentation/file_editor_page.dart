@@ -5,6 +5,7 @@ import 'package:mh_tdb/mh_tdb.dart';
 import '../../ai/presentation/pretranslate_dialog.dart';
 import '../../dump/presentation/dump_dialog.dart';
 import '../../files/presentation/budget_gauge.dart';
+import '../../status/presentation/bulk_status_dialog.dart';
 import '../application/file_editor.dart';
 import '../application/file_editor_state.dart';
 import 'slot_editor_panel.dart';
@@ -45,6 +46,24 @@ class _FileEditorPageState extends ConsumerState<FileEditorPage> {
                   selectedSourceId: sel.isNotEmpty && !sel.first.isAlias
                       ? _selected
                       : null,
+                ),
+              );
+            },
+          ),
+          IconButton(
+            key: const Key('bulk-status'),
+            icon: const Icon(Icons.fact_check),
+            tooltip: 'Changer le statut en masse',
+            onPressed: () {
+              final st = editor.value;
+              if (st == null) return;
+              showDialog<void>(
+                context: context,
+                builder: (_) => BulkStatusDialog(
+                  fileId: widget.fileId,
+                  tables: ({for (final s in st.slots) s.tableIdx}.toList()
+                    ..sort()),
+                  unsavedCount: st.drafts.length,
                 ),
               );
             },

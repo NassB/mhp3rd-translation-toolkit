@@ -343,6 +343,80 @@ final class TranslationRepository {
     ];
   }
 
+  /// Change en masse le statut des traductions existantes d'un fichier (ou
+  /// d'une seule table), sans toucher au texte ni à l'auteur.
+  ///
+  /// Sélection : traductions de [fileId] (et de [tableIdx] si donné) dont le
+  /// statut est dans [from] et dont le texte n'est pas vide (une traduction
+  /// vide ne devient jamais `translated`). Les chaînes sans traduction
+  /// (`untranslated`) et les alias n'ont pas de ligne : jamais concernés. Une
+  /// traduction `locked` n'est modifiée que si `locked` figure dans [from].
+  /// Avec [dryRun], compte sans rien écrire. Chaque ligne changée passe en
+  /// `revision + 1` avec une entrée d'historique, le tout dans une transaction.
+  /// Lève [TdbError] si [to] ou un statut de [from] est inconnu, si [from] est
+  /// vide ou contient `untranslated`.
+  Future<BulkStatusResult> bulkSetStatus({
+    required int fileId,
+    int? tableIdx,
+    required Set<String> from,
+    required String to,
+    bool dryRun = false,
+  }) async {
+    for (final s in {...from, to}) {
+      if (!translationStatuses.contains(s)) {
+        throw TdbError('unknown status "$s"');
+      }
+    }
+    if (from.isEmpty || from.contains('untranslated')) {
+      throw const TdbError('bulk status: "from" must be non-empty statuses '
+          'of existing translations');
+    }
+    return db.transaction(() async {
+      final tr = db.translations;
+      final src = db.sourceStrings;
+      final query = db.select(tr).join([
+        innerJoin(src, src.id.equalsExp(tr.sourceId)),
+      ])
+        ..where(
+          src.fileId.equals(fileId) &
+              tr.locale.equals(locale) &
+              tr.status.isIn(from) &
+              (tableIdx == null
+                  ? const Constant(true)
+                  : src.tableIdx.equals(tableIdx)),
+        );
+      final rows = [for (final r in await query.get()) r.readTable(tr)];
+      var changed = 0;
+      var skippedEmpty = 0;
+      var unchanged = 0;
+      for (final r in rows) {
+        if (r.status == to) {
+          unchanged++;
+          continue;
+        }
+        if (r.text_.trim().isEmpty) {
+          skippedEmpty++;
+          continue;
+        }
+        changed++;
+        if (dryRun) continue;
+        await (db.update(tr)..where((t) => t.id.equals(r.id))).write(
+          TranslationsCompanion(
+            status: Value(to),
+            revision: Value(r.revision + 1),
+            updatedAt: Value(DateTime.now().toUtc()),
+          ),
+        );
+        await recordTranslationRevision(db, r.id);
+      }
+      return BulkStatusResult(
+        changed: changed,
+        skippedEmpty: skippedEmpty,
+        alreadyThere: unchanged,
+      );
+    });
+  }
+
   Future<TranslationRow?> _byId(int id) =>
       (db.select(db.translations)..where((t) => t.id.equals(id)))
           .getSingleOrNull();
@@ -357,4 +431,23 @@ final class TranslationRepository {
           updatedAt: r.updatedAt,
           authorId: r.authorId,
         );
+}
+
+/// Résultat de [TranslationRepository.bulkSetStatus].
+final class BulkStatusResult {
+  /// Voir les champs.
+  const BulkStatusResult({
+    required this.changed,
+    required this.skippedEmpty,
+    required this.alreadyThere,
+  });
+
+  /// Traductions passées (ou qui passeraient, en `dryRun`) au nouveau statut.
+  final int changed;
+
+  /// Ignorées car leur texte est vide.
+  final int skippedEmpty;
+
+  /// Déjà au statut demandé.
+  final int alreadyThere;
 }

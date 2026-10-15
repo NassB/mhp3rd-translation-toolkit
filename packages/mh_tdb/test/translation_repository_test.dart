@@ -54,6 +54,143 @@ void main() {
       .firstWhere((s) => s.tableIdx == table && s.slotIdx == slot)
       .sourceId;
 
+  group('bulkSetStatus', () {
+    Future<void> seed() async {
+      await repo.saveTranslation(
+        sourceId: await idOf(0, 0),
+        text: 'A',
+        status: 'draft',
+        authorId: 'ai:m',
+      );
+      await repo.saveTranslation(
+        sourceId: await idOf(0, 1),
+        text: 'B',
+        status: 'draft',
+      );
+      await repo.saveTranslation(
+        sourceId: await idOf(2, 0),
+        text: 'C',
+        status: 'locked',
+      );
+    }
+
+    Future<Map<String, String>> statuses() async => {
+          for (final s in await all())
+            if (s.translation != null)
+              '${s.tableIdx}.${s.slotIdx}': s.translation!.status,
+        };
+
+    test('changes one table only, keeps text and author, bumps revision',
+        () async {
+      await seed();
+      final r = await repo.bulkSetStatus(
+        fileId: 17,
+        tableIdx: 0,
+        from: {'draft'},
+        to: 'translated',
+      );
+      expect((r.changed, r.skippedEmpty, r.alreadyThere), (2, 0, 0));
+      expect(await statuses(), {
+        '0.0': 'translated',
+        '0.1': 'translated',
+        '2.0': 'locked',
+      });
+      final s =
+          (await all()).firstWhere((x) => x.slotIdx == 0 && x.tableIdx == 0);
+      expect(s.translation!.text, 'A');
+      expect(s.translation!.authorId, 'ai:m');
+      expect(s.translation!.revision, 2);
+      final h = await repo.history(s.sourceId);
+      expect(h.map((x) => x.revision), [2, 1]);
+    });
+
+    test('dry run counts without writing', () async {
+      await seed();
+      final r = await repo.bulkSetStatus(
+        fileId: 17,
+        from: {'draft'},
+        to: 'reviewed',
+        dryRun: true,
+      );
+      expect(r.changed, 2);
+      expect((await statuses())['0.0'], 'draft');
+    });
+
+    test('whole file; locked is untouched unless asked for', () async {
+      await seed();
+      await repo.bulkSetStatus(fileId: 17, from: {'draft'}, to: 'translated');
+      expect((await statuses())['2.0'], 'locked');
+      final r = await repo.bulkSetStatus(
+        fileId: 17,
+        from: {'translated', 'locked'},
+        to: 'reviewed',
+      );
+      expect(r.changed, 3);
+      expect(await statuses(), {
+        '0.0': 'reviewed',
+        '0.1': 'reviewed',
+        '2.0': 'reviewed',
+      });
+    });
+
+    test('rows already at the target status are counted, not rewritten',
+        () async {
+      await seed();
+      final r = await repo.bulkSetStatus(
+        fileId: 17,
+        from: {'draft', 'locked'},
+        to: 'locked',
+      );
+      expect((r.changed, r.alreadyThere), (2, 1));
+    });
+
+    test('empty text never becomes translated', () async {
+      await repo.saveTranslation(
+        sourceId: await idOf(0, 0),
+        text: '',
+        status: 'draft',
+      );
+      final r = await repo.bulkSetStatus(
+        fileId: 17,
+        from: {'draft'},
+        to: 'translated',
+      );
+      expect((r.changed, r.skippedEmpty), (0, 1));
+      expect((await statuses())['0.0'], 'draft');
+    });
+
+    test('invalid arguments are rejected', () async {
+      for (final call in [
+        () => repo.bulkSetStatus(fileId: 17, from: {}, to: 'draft'),
+        () =>
+            repo.bulkSetStatus(fileId: 17, from: {'untranslated'}, to: 'draft'),
+        () => repo.bulkSetStatus(fileId: 17, from: {'draft'}, to: 'nope'),
+        () => repo.bulkSetStatus(fileId: 17, from: {'nope'}, to: 'draft'),
+      ]) {
+        await expectLater(call(), throwsA(isA<TdbError>()));
+      }
+    });
+
+    test('other locales are untouched', () async {
+      await seed();
+      final en = TranslationRepository(db, locale: 'en');
+      await en.saveTranslation(
+        sourceId: await idOf(0, 0),
+        text: 'A',
+        status: 'draft',
+      );
+      await repo.bulkSetStatus(fileId: 17, from: {'draft'}, to: 'translated');
+      final s = await en.slots(17);
+      expect(
+        s
+            .firstWhere((x) => x.slotIdx == 0 && x.tableIdx == 0)
+            .translation!
+            .status,
+        'draft',
+      );
+    });
+  });
+
   test('listFiles counts non-alias strings, untranslated by default', () async {
     final files = await repo.listFiles();
     expect(files, hasLength(1));
