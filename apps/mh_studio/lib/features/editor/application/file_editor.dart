@@ -166,6 +166,26 @@ class FileEditor extends _$FileEditor {
     _scheduleBudget();
   }
 
+  /// Après un conflit : garde le brouillon mais repart de la version courante
+  /// de la base (le prochain enregistrement l'écrasera en connaissance de
+  /// cause). Le budget enregistré n'inclut pas la version distante : écart
+  /// corrigé au prochain calcul global.
+  void keepDraftOverConflict(int sourceId) {
+    final cur = state.value;
+    if (cur == null || !cur.conflicts.containsKey(sourceId)) return;
+    final theirs = cur.conflicts[sourceId];
+    final slots = [
+      for (final s in cur.slots)
+        if (s.sourceId == sourceId) _withTranslation(s, theirs) else s,
+    ];
+    state = AsyncData(
+      cur.copyWith(
+        slots: slots,
+        conflicts: {...cur.conflicts}..remove(sourceId),
+      ),
+    );
+  }
+
   /// Enregistre le brouillon de [sourceId]. Retourne `true` si accepté.
   Future<bool> save(int sourceId, {String? authorId}) async {
     final cur = state.value;

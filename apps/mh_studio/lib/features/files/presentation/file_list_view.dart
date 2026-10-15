@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:mh_build/mh_build.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
+import '../../../app/router.dart';
 import '../application/files_providers.dart';
 import 'budget_gauge.dart';
 
@@ -63,6 +65,7 @@ class _FileTile extends StatelessWidget {
     final b = patch ?? budgets.value?[file.id];
     return ListTile(
       key: Key('file-${file.id}'),
+      onTap: () => context.push(Routes.file(file.id)),
       title: Text('#${file.id} · ${file.label ?? file.codec}'),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

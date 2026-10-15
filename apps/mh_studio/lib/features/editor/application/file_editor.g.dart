@@ -56,7 +56,7 @@ final class FileEditorProvider
   }
 }
 
-String _$fileEditorHash() => r'22096fd84969d1af6706b30b7f215a190614d242';
+String _$fileEditorHash() => r'400f15469ad13eaefbbc98b01f5276b2b88c1d59';
 
 /// Éditeur d'un fichier : brouillons, enregistrement avec concurrence
 /// optimiste, jauge d'octets en direct.
