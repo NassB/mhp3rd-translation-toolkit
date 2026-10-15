@@ -168,4 +168,63 @@ void main() {
     expect((await mhtk(runExtract, [])).$1, 64);
     expect((await mhtk(runStatus, [])).$1, 64);
   });
+
+  group('import', () {
+    late String dump;
+
+    setUp(() {
+      dump = '${tmp.path}/dump';
+      Directory(dump).createSync();
+      File('$dump/filelist.txt').writeAsStringSync(
+        '0001.bin 0\nstring_table_0.txt\nstring_table_1.txt\nenddata.bin\n',
+      );
+      File('$dump/string_table_0.txt')
+          .writeAsStringSync('UN<NEWLINE>DEUX\ntrois\n');
+    });
+
+    Future<(int, String, String)> import({
+      int file = 1,
+      String? from,
+      List<String> extra = const [],
+    }) =>
+        mhtk(runImport, [
+          '--project',
+          project,
+          '--from',
+          from ?? dump,
+          '--file',
+          '$file',
+          '--config',
+          config,
+          ...extra,
+        ]);
+
+    test('applies a dump folder and shows it in status', () async {
+      await init();
+      await extract();
+      final (code, out, err) = await import();
+      expect(code, 0, reason: err);
+      expect(out, contains('file 1: 1 translations'));
+      final st = await mhtk(runStatus, ['--project', project]);
+      expect(st.$2, contains('draft         1'));
+
+      final again = await import(extra: ['--status', 'translated']);
+      expect(again.$2, contains('1 translations'));
+      expect(
+        (await mhtk(runStatus, ['--project', project])).$2,
+        contains('translated    1'),
+      );
+    });
+
+    test('fails cleanly on bad input', () async {
+      await init();
+      await extract();
+      expect((await mhtk(runImport, [])).$1, 64);
+      expect((await import(from: '${tmp.path}/absent')).$1, 1);
+      expect((await import(file: 2)).$1, 1); // faux positif : non importé
+      expect((await import(extra: ['--status', 'bogus'])).$1, 1);
+      File('$dump/string_table_0.txt').writeAsStringSync('une seule ligne\n');
+      expect((await import()).$1, 1);
+    });
+  });
 }

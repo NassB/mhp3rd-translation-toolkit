@@ -9,6 +9,7 @@ commands:
   index    summarize DATA.BIN (file or --iso)
   init     create a project from an ISO
   extract  detect and import the text tables into the project database
+  import   apply a mhtools dump folder to one file
   status   show the project database content''';
 
 Future<void> main(List<String> args) async {
@@ -20,6 +21,8 @@ Future<void> main(List<String> args) async {
       exitCode = await runInit(rest, stdout, stderr);
     case 'extract':
       exitCode = await runExtract(rest, stdout, stderr);
+    case 'import':
+      exitCode = await runImport(rest, stdout, stderr);
     case 'status':
       exitCode = await runStatus(rest, stdout, stderr);
     default:
