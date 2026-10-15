@@ -9,5 +9,6 @@ dependencies:
   mh_binary: any
   mh_databin: any
 dev_dependencies:
+  mh_iso: any
   lints: ^5.0.0
   test: ^1.25.0
