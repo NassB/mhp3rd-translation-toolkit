@@ -1,6 +1,7 @@
 /// Base de traduction, repositories, synchronisation.
 library;
 
+export 'src/import_mhtools.dart';
 export 'src/tables/builds.dart';
 export 'src/tables/game_files.dart';
 export 'src/tables/source_strings.dart';

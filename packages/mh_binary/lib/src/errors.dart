@@ -1,7 +1,7 @@
 /// Erreur de base du toolkit (AGENTS.md §7).
 ///
 /// Sous-types : [FormatError], [CryptoError], [PatchError], [IsoError],
-/// [BudgetError].
+/// [BudgetError], [TdbError].
 abstract class MhError implements Exception {
   /// Crée une erreur avec son [message] et le contexte optionnel
   /// ([offset] dans le flux, [fileId] mhtools base 1).
@@ -79,4 +79,11 @@ final class BudgetError extends MhError {
 
   /// Limite applicable en octets.
   final int limitBytes;
+}
+
+/// Opération invalide sur la base de traduction (données incohérentes,
+/// import en double, statut inconnu).
+final class TdbError extends MhError {
+  /// Voir [MhError].
+  const TdbError(super.message, {super.offset, super.fileId});
 }
