@@ -9,7 +9,10 @@ dependencies:
   mh_binary: any
   mh_build: any
   mh_iso: any
+  crypto: ^3.0.7
   mh_databin: any
+  mh_formats: any
+  mh_tdb: any
 dev_dependencies:
   lints: ^5.0.0
   test: ^1.25.0

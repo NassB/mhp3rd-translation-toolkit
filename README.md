@@ -85,6 +85,9 @@ MHP3_ISO=local/MHP3.iso scripts/check.sh packages/mh_databin --integration
 dart run apps/mh_cli/bin/mhtk.dart --help
 dart run apps/mh_cli/bin/mhtk.dart index --iso local/MHP3.iso   # list files in DATA.BIN
 dart run apps/mh_cli/bin/mhtk.dart index path/to/DATA.BIN
+dart run apps/mh_cli/bin/mhtk.dart init --iso local/MHP3.iso --project out/fr   # create a project (MD5 checked, SQLite db)
+dart run apps/mh_cli/bin/mhtk.dart extract --project out/fr                  # detect and import the text tables
+dart run apps/mh_cli/bin/mhtk.dart status --project out/fr                   # files, strings, translations by status
 ```
 
 `index` prints the file count, the largest slot and the sum of slots.

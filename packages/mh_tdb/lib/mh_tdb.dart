@@ -3,6 +3,7 @@ library;
 
 export 'src/build_queries.dart';
 export 'src/import_mhtools.dart';
+export 'src/status_queries.dart';
 export 'src/tables/builds.dart';
 export 'src/tables/game_files.dart';
 export 'src/tables/source_strings.dart';
