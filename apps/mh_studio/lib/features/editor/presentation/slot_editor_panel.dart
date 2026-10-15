@@ -4,6 +4,7 @@ import 'package:mh_formats/mh_formats.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
 import '../../glossary/application/glossary_providers.dart';
+import '../../memory/application/memory_providers.dart';
 import '../application/file_editor.dart';
 import '../application/file_editor_state.dart';
 import 'lint_list.dart';
@@ -58,6 +59,15 @@ class _SlotEditorPanelState extends ConsumerState<SlotEditorPanel> {
     super.dispose();
   }
 
+  /// Remplace tout le texte de la traduction par [text] (suggestion).
+  void _replaceAll(String text) {
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    _editor.setDraft(slot.sourceId, text: text);
+  }
+
   /// Insère [term] à la position du curseur (ou remplace la sélection).
   void _insert(String term) {
     final v = _controller.value;
@@ -104,6 +114,14 @@ class _SlotEditorPanelState extends ConsumerState<SlotEditorPanel> {
             glossary: entries,
           )
         : const <LintIssue>[];
+
+    final suggestions = slot.isAlias
+        ? const <TmMatch>[]
+        : ref
+                  .watch(translationMemoryProvider)
+                  .value
+                  ?.suggest(slot.sourceText, excludeSourceId: id) ??
+              const <TmMatch>[];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -178,6 +196,16 @@ class _SlotEditorPanelState extends ConsumerState<SlotEditorPanel> {
             if (showLint) ...[
               const SizedBox(height: 8),
               LintList(issues: issues),
+            ],
+            if (suggestions.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text('Mémoire de traduction', style: theme.textTheme.labelLarge),
+              for (var i = 0; i < suggestions.length; i++)
+                _SuggestionTile(
+                  key: Key('tm-$i'),
+                  match: suggestions[i],
+                  onUse: () => _replaceAll(suggestions[i].targetText),
+                ),
             ],
             const SizedBox(height: 12),
             Wrap(
@@ -264,6 +292,52 @@ class _ConflictBanner extends ConsumerWidget {
                   child: const Text('Garder mon brouillon'),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SuggestionTile extends StatelessWidget {
+  const _SuggestionTile({super.key, required this.match, required this.onUse});
+
+  final TmMatch match;
+  final VoidCallback onUse;
+
+  @override
+  Widget build(BuildContext context) {
+    final pct = (match.score * 100).round();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$pct %${match.exact ? ' · exacte' : ''} · '
+                    'fichier ${match.fileId}, ${match.tableIdx}.${match.slotIdx}'
+                    ' · ${match.status}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  if (!match.exact) ...[
+                    const SizedBox(height: 2),
+                    TokenizedText(match.sourceText),
+                  ],
+                  const SizedBox(height: 2),
+                  TokenizedText(match.targetText),
+                ],
+              ),
+            ),
+            TextButton(
+              key: const Key('tm-use'),
+              onPressed: onUse,
+              child: const Text('Utiliser'),
             ),
           ],
         ),

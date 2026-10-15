@@ -11,6 +11,7 @@ import 'package:mh_studio/app/router.dart';
 import 'package:mh_studio/features/editor/presentation/file_editor_page.dart';
 import 'package:mh_studio/features/files/application/files_providers.dart';
 import 'package:mh_studio/features/glossary/application/glossary_providers.dart';
+import 'package:mh_studio/features/memory/application/memory_providers.dart';
 import 'package:mh_studio/features/project/application/project_providers.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
@@ -75,8 +76,14 @@ void main() {
   });
   tearDown(() => db.close());
 
-  List<Override> overrides({List<GlossaryTermRow> glossary = const []}) => [
+  List<Override> overrides({
+    List<GlossaryTermRow> glossary = const [],
+    TranslationMemory? memory,
+  }) => [
     glossaryListProvider.overrideWith((ref) async => glossary),
+    translationMemoryProvider.overrideWith(
+      (ref) async => memory ?? TranslationMemory.fromPairs(const []),
+    ),
     translationRepositoryProvider.overrideWithValue(repo),
     fileBudgetsProvider.overrideWith((ref) async => {17: baseBudget}),
   ];
@@ -84,10 +91,11 @@ void main() {
   Future<void> openEditor(
     WidgetTester t, {
     List<GlossaryTermRow> glossary = const [],
+    TranslationMemory? memory,
   }) async {
     await t.pumpWidget(
       ProviderScope(
-        overrides: overrides(glossary: glossary),
+        overrides: overrides(glossary: glossary, memory: memory),
         child: const MaterialApp(home: FileEditorPage(fileId: 17)),
       ),
     );
@@ -367,5 +375,63 @@ void main() {
     await t.tap(find.byKey(Key('slot-${s[1].sourceId}')));
     await t.pump();
     expect(find.byKey(const Key('lint-list')), findsNothing);
+  });
+
+  testWidgets('an exact memory match can be reused', (t) async {
+    final memory = TranslationMemory.fromPairs([
+      (id: 9001, source: 'trois', target: 'three (mémoire)'),
+    ]);
+    await openEditor(t, memory: memory);
+    final s = await slots(t);
+    await t.tap(find.byKey(Key('slot-${s[1].sourceId}'))); // 'trois'
+    await t.pump();
+    await settle(t);
+    expect(find.text('Mémoire de traduction'), findsOneWidget);
+    expect(find.textContaining('100 % · exacte'), findsOneWidget);
+
+    await t.tap(find.byKey(const Key('tm-use')));
+    await settle(t);
+    expect(
+      t
+          .widget<TextField>(find.byKey(const Key('target-field')))
+          .controller!
+          .text,
+      'three (mémoire)',
+    );
+    expect(find.byKey(const Key('dirty-dot')), findsOneWidget);
+  });
+
+  testWidgets('a fuzzy match shows its score and its source', (t) async {
+    final memory = TranslationMemory.fromPairs([
+      (id: 9001, source: 'trois!', target: 'three!'),
+    ]);
+    await openEditor(t, memory: memory);
+    final s = await slots(t);
+    await t.tap(find.byKey(Key('slot-${s[1].sourceId}')));
+    await t.pump();
+    await settle(t);
+    expect(find.textContaining('exacte'), findsNothing);
+    expect(find.textContaining(' % · fichier 0'), findsOneWidget);
+    expect(find.text('trois!'), findsOneWidget);
+    expect(find.text('three!'), findsOneWidget);
+  });
+
+  testWidgets('no suggestion section without a match or on an alias', (
+    t,
+  ) async {
+    final memory = TranslationMemory.fromPairs([
+      (id: 9001, source: 'un\ndeux', target: 'one\ntwo'),
+    ]);
+    await openEditor(t, memory: memory);
+    final s = await slots(t);
+    await t.tap(find.byKey(Key('slot-${s[1].sourceId}'))); // 'trois' : rien
+    await t.pump();
+    await settle(t);
+    expect(find.text('Mémoire de traduction'), findsNothing);
+
+    await t.tap(find.byKey(Key('slot-${s[2].sourceId}'))); // alias
+    await t.pump();
+    await settle(t);
+    expect(find.text('Mémoire de traduction'), findsNothing);
   });
 }

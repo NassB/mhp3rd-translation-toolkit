@@ -5,6 +5,7 @@ import 'package:mh_tdb/mh_tdb.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../files/application/files_providers.dart';
+import '../../memory/application/memory_providers.dart';
 import 'file_editor_state.dart';
 
 part 'file_editor.g.dart';
@@ -225,6 +226,7 @@ class FileEditor extends _$FileEditor {
           ),
         );
         ref.invalidate(fileListProvider);
+        ref.invalidate(translationMemoryProvider);
         _publish();
         return true;
       case SaveConflict(:final current):

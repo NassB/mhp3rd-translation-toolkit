@@ -12,6 +12,7 @@ export 'src/tables/source_strings.dart';
 export 'src/tables/translation_histories.dart';
 export 'src/tables/translations.dart';
 export 'src/tdb_database.dart';
+export 'src/translation_memory.dart';
 export 'src/translation_repository.dart';
 
 /// Nom du paquet (test de fumée).
