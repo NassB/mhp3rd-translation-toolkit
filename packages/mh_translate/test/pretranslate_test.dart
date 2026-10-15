@@ -426,4 +426,41 @@ void main() {
       expect(dump, isNot(contains(text)));
     }
   });
+
+  test('limit keeps the first strings of the file only', () async {
+    final client = ScriptedClient((r, _) => answer(r, dict));
+    final report = await run(
+      client,
+      options: const PreTranslateOptions(limit: 2),
+    );
+    expect(report.candidates, 2);
+    final s = await stored();
+    expect(s[hello], isNotNull);
+    expect(s[thanks], isNotNull);
+    expect(s[hunter], isNull);
+    expect(s[pen], isNull);
+  });
+
+  test('the plan counts what a run would do and sends nothing', () async {
+    const options = PreTranslateOptions(maxUnits: 2);
+    final plan = await planPreTranslation(
+      repo: repo,
+      fileId: 17,
+      options: options,
+    );
+    expect(plan.candidates, 4);
+    expect(plan.batches, 2);
+    expect(plan.skippedEmpty, 1);
+    expect(plan.skippedNoJapanese, 1);
+    expect(plan.estimatedPromptTokens, greaterThan(2 * 350));
+
+    final withDrafts = await planPreTranslation(
+      repo: repo,
+      fileId: 17,
+      options: const PreTranslateOptions(includeDrafts: true),
+    );
+    expect(withDrafts.candidates, 5);
+    // Aucune écriture : rien n'a été traduit.
+    expect((await stored())[hello], isNull);
+  });
 }

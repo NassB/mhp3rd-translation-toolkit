@@ -15,6 +15,7 @@ dependencies:
   mh_databin: any
   mh_formats: any
   mh_tdb: any
+  mh_translate: any
 dev_dependencies:
   lints: ^5.0.0
   test: ^1.25.0

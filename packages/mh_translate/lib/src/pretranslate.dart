@@ -84,6 +84,7 @@ final class PreTranslateOptions {
     this.contextSize = 3,
     this.contextChars = 160,
     this.minMaxBytes = 12,
+    this.limit,
     this.temperature = 0.2,
     this.prompt = const PromptOptions(),
   });
@@ -105,6 +106,10 @@ final class PreTranslateOptions {
   /// maximale de chacune.
   final int contextSize;
   final int contextChars;
+
+  /// Nombre maximal de chaînes traitées (les premières du fichier) ; `null` :
+  /// toutes.
+  final int? limit;
 
   /// Limite d'octets minimale d'une chaîne (une source de 3 octets ne peut pas
   /// se traduire en 3 octets).
@@ -255,46 +260,12 @@ Future<PreTranslateReport> preTranslateFile({
       ),
   ];
 
-  var skippedEmpty = 0;
-  var skippedNoJapanese = 0;
-  final units = <TranslationUnit>[];
-  final indexById = <int, int>{};
-  for (var i = 0; i < slots.length; i++) {
-    final s = slots[i];
-    indexById[s.sourceId] = i;
-    if (s.isAlias) continue;
-    final t = s.translation;
-    final todo = t == null ||
-        t.status == 'untranslated' ||
-        (options.includeDrafts && t.status == 'draft');
-    if (!todo) continue;
-    if (s.sourceText.trim().isEmpty) {
-      skippedEmpty++;
-      continue;
-    }
-    if (!_japanese.hasMatch(s.sourceText)) {
-      skippedNoJapanese++;
-      continue;
-    }
-    final max = _bytes(s.sourceText);
-    units.add(
-      TranslationUnit(
-        id: s.sourceId,
-        source: s.sourceText,
-        maxBytes: max < options.minMaxBytes ? options.minMaxBytes : max,
-      ),
-    );
-  }
-
-  final batches = buildBatches(
-    units,
-    maxUnits: options.maxUnits,
-    maxBatchTokens: (options.maxBatchTokens - options.fixedPromptTokens).clamp(
-      200,
-      1 << 30,
-    ),
-    tokensPerEstimate: options.tokensPerEstimate,
-  );
+  final plan = _select(slots, options);
+  final units = plan.units;
+  final indexById = plan.indexById;
+  final skippedEmpty = plan.skippedEmpty;
+  final skippedNoJapanese = plan.skippedNoJapanese;
+  final batches = plan.batches;
 
   var saved = 0;
   var conflicts = 0;
@@ -465,5 +436,107 @@ Future<PreTranslateReport> preTranslateFile({
     cancelled: cancelled,
     stoppedBy: stoppedBy,
     unprocessed: units.length - done,
+  );
+}
+
+class _Selection {
+  _Selection(
+    this.units,
+    this.indexById,
+    this.batches,
+    this.skippedEmpty,
+    this.skippedNoJapanese,
+  );
+
+  final List<TranslationUnit> units;
+  final Map<int, int> indexById;
+  final List<Batch> batches;
+  final int skippedEmpty;
+  final int skippedNoJapanese;
+}
+
+/// Choisit les chaînes à traduire et les découpe en lots.
+_Selection _select(List<SlotView> slots, PreTranslateOptions options) {
+  var skippedEmpty = 0;
+  var skippedNoJapanese = 0;
+  final units = <TranslationUnit>[];
+  final indexById = <int, int>{};
+  for (var i = 0; i < slots.length; i++) {
+    final s = slots[i];
+    indexById[s.sourceId] = i;
+    if (s.isAlias) continue;
+    if (options.limit != null && units.length >= options.limit!) continue;
+    final t = s.translation;
+    final todo = t == null ||
+        t.status == 'untranslated' ||
+        (options.includeDrafts && t.status == 'draft');
+    if (!todo) continue;
+    if (s.sourceText.trim().isEmpty) {
+      skippedEmpty++;
+      continue;
+    }
+    if (!_japanese.hasMatch(s.sourceText)) {
+      skippedNoJapanese++;
+      continue;
+    }
+    final max = _bytes(s.sourceText);
+    units.add(
+      TranslationUnit(
+        id: s.sourceId,
+        source: s.sourceText,
+        maxBytes: max < options.minMaxBytes ? options.minMaxBytes : max,
+      ),
+    );
+  }
+  final batches = buildBatches(
+    units,
+    maxUnits: options.maxUnits,
+    maxBatchTokens: (options.maxBatchTokens - options.fixedPromptTokens).clamp(
+      200,
+      1 << 30,
+    ),
+    tokensPerEstimate: options.tokensPerEstimate,
+  );
+  return _Selection(units, indexById, batches, skippedEmpty, skippedNoJapanese);
+}
+
+/// Ce que [preTranslateFile] ferait, **sans rien envoyer** (`--dry-run`).
+final class PreTranslatePlan {
+  /// Voir les champs.
+  const PreTranslatePlan({
+    required this.candidates,
+    required this.batches,
+    required this.skippedEmpty,
+    required this.skippedNoJapanese,
+    required this.estimatedPromptTokens,
+  });
+
+  final int candidates;
+  final int batches;
+  final int skippedEmpty;
+  final int skippedNoJapanese;
+
+  /// Estimation (prudente) des jetons envoyés au total, consigne comprise.
+  final int estimatedPromptTokens;
+}
+
+/// Calcule le [PreTranslatePlan] du fichier [fileId] : aucune requête n'est
+/// faite, rien n'est écrit.
+Future<PreTranslatePlan> planPreTranslation({
+  required TranslationRepository repo,
+  required int fileId,
+  PreTranslateOptions options = const PreTranslateOptions(),
+}) async {
+  final slots = await repo.slots(fileId, limit: await repo.countSlots(fileId));
+  final plan = _select(slots, options);
+  return PreTranslatePlan(
+    candidates: plan.units.length,
+    batches: plan.batches.length,
+    skippedEmpty: plan.skippedEmpty,
+    skippedNoJapanese: plan.skippedNoJapanese,
+    estimatedPromptTokens: plan.batches.fold<int>(
+      0,
+      (a, b) => a + b.estimatedTokens + options.fixedPromptTokens,
+    ),
   );
 }

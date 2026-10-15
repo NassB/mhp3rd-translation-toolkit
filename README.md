@@ -91,6 +91,7 @@ dart run apps/mh_cli/bin/mhtk.dart extract --project out/fr                  # d
 dart run apps/mh_cli/bin/mhtk.dart import --project out/fr --from ./dump --file 17   # apply a mhtools dump folder to one file
 dart run apps/mh_cli/bin/mhtk.dart budget --project out/fr --file 17                 # size budget of one file
 dart run apps/mh_cli/bin/mhtk.dart build --project out/fr --target iso               # write translations into a copy of the ISO
+dart run apps/mh_cli/bin/mhtk.dart pretranslate --project out/fr --file 2819 --model <id> --endpoint http://localhost:1234/v1 --dry-run   # AI drafts via a local LLM (LM Studio); game text never leaves the machine by default
 dart run apps/mh_cli/bin/mhtk.dart status --project out/fr                   # files, strings, translations by status
 ```
 
