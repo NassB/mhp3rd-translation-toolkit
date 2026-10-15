@@ -1,6 +1,9 @@
 /// Codecs de formats du jeu (string_table_a, puis quest, pac, gim, font).
 library;
 
+export 'src/mhtools_dump.dart';
+export 'src/mhtools_text.dart'
+    show applyTableLines, exportTableLines, joinLines, splitLines;
 export 'src/string_table_a_decoder.dart';
 export 'src/string_table_a_encoder.dart';
 export 'src/string_table_file.dart';

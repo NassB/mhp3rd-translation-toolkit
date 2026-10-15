@@ -48,6 +48,17 @@ Offsets de chaînes : mhtools les ignore (seul K compte) et les recalcule (`4×K
 - Décoder en s'appuyant sur les **offsets stockés** (pas sur le balayage de zéros) ; vérifier sur réel que les offsets sont bien contigus ou aliasés.
 - Conserver `unknownHeader`, offsets de chaînes, octets de fin et `endData` pour le round-trip bit à bit.
 
+## Format d'échange texte mhtools (implémenté en T14, [fixtures])
+
+Source : `mhtools` `ExtractPluginA.java` (`extract`), `RebuildPluginA.java` (`createStringTable`), `HelperEnc.java`. Non vérifié sur fichiers réels.
+
+- Dossier : `filelist.txt` (`<nom.bin> <taille>`, puis `string_table_<j>.txt` pour j = 0..N-1, puis `enddata.bin`), `string_table_<j>.txt`, `enddata.bin`.
+- `.txt` : UTF-8 sans BOM, une chaîne par ligne ; `\n` → `<NEWLINE>` ; chaîne vide → `<EMPTY STRING>`. Table nulle : pas de fichier ; table vide : fichier vide.
+- Import (`importMhtoolsDump`) : les lignes sont appliquées sur le modèle d'origine (offsets et alias conservés, pas de reconstruction séquentielle comme mhtools). Nombre de lignes = nombre de slots, sinon erreur ; un alias doit répéter le texte de sa cible ; NUL ou `<EMPTY STRING>` mêlé à du texte → erreur.
+- Tolérances à la lecture : BOM UTF-8, `\r\n`, dernière ligne sans saut de ligne (mhtools la perd). Une ligne vide vaut chaîne vide.
+- Export refuse (non représentable sans perte) : UTF-8 invalide, marqueur littéral dans la chaîne, chaîne finissant par `\r`.
+- Hors périmètre : lecture/écriture disque (CLI, phase 2), jetons de contrôle.
+
 ## Questions ouvertes
 
 - Sens de `unknownHeader` (toujours 8 sur l'unique fichier) et nature de `endData`.
