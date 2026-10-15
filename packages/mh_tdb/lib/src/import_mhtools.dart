@@ -8,6 +8,7 @@ import 'package:mh_formats/mh_formats.dart';
 
 import 'tables/translations.dart';
 import 'tdb_database.dart';
+import 'translation_history.dart';
 
 /// Texte d'un slot : UTF-8 avec `\n` réel (rendu des jetons).
 String slotText(StringSlot s, {int? fileId}) {
@@ -141,7 +142,7 @@ Future<int> importMhtoolsTranslations(
               ))
             .getSingleOrNull();
         if (current == null) {
-          await db.into(db.translations).insert(
+          final newId = await db.into(db.translations).insert(
                 TranslationsCompanion.insert(
                   sourceId: row.id,
                   locale: locale,
@@ -149,6 +150,7 @@ Future<int> importMhtoolsTranslations(
                   status: status,
                 ),
               );
+          await recordTranslationRevision(db, newId);
           changed++;
         } else if (current.text_ != text || current.status != status) {
           await (db.update(db.translations)
@@ -161,6 +163,7 @@ Future<int> importMhtoolsTranslations(
               updatedAt: Value(DateTime.now().toUtc()),
             ),
           );
+          await recordTranslationRevision(db, current.id);
           changed++;
         }
       }

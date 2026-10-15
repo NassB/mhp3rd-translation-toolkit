@@ -9,6 +9,7 @@ import 'package:mh_binary/mh_binary.dart';
 
 import 'tables/translations.dart';
 import 'tdb_database.dart';
+import 'translation_history.dart';
 
 /// Avancement d'un fichier pour une locale.
 final class FileProgress {
@@ -67,6 +68,24 @@ final class TranslationInfo {
   final int revision;
   final DateTime updatedAt;
   final String? authorId;
+}
+
+/// Une révision passée d'une traduction.
+final class TranslationRevision {
+  /// Voir les champs.
+  const TranslationRevision({
+    required this.revision,
+    required this.text,
+    required this.status,
+    required this.authorId,
+    required this.changedAt,
+  });
+
+  final int revision;
+  final String text;
+  final String status;
+  final String? authorId;
+  final DateTime changedAt;
 }
 
 /// Une chaîne source avec sa traduction éventuelle.
@@ -281,6 +300,7 @@ final class TranslationRepository {
                 authorId: Value(authorId),
               ),
             );
+        await recordTranslationRevision(db, id);
         return SaveOk(_info(await _byId(id))!);
       }
       if (expectedRevision != current.revision) {
@@ -295,8 +315,32 @@ final class TranslationRepository {
           updatedAt: Value(DateTime.now().toUtc()),
         ),
       );
+      await recordTranslationRevision(db, current.id);
       return SaveOk(_info(await _byId(current.id))!);
     });
+  }
+
+  /// Révisions de la traduction de [sourceId] (plus récente d'abord) ;
+  /// vide si la chaîne n'a pas de traduction pour cette locale.
+  Future<List<TranslationRevision>> history(int sourceId) async {
+    final h = db.translationHistories;
+    final tr = db.translations;
+    final rows = await (db.select(h).join([
+      innerJoin(tr, tr.id.equalsExp(h.translationId)),
+    ])
+          ..where(tr.sourceId.equals(sourceId) & tr.locale.equals(locale))
+          ..orderBy([OrderingTerm.desc(h.revision)]))
+        .get();
+    return [
+      for (final r in rows)
+        TranslationRevision(
+          revision: r.readTable(h).revision,
+          text: r.readTable(h).text_,
+          status: r.readTable(h).status,
+          authorId: r.readTable(h).authorId,
+          changedAt: r.readTable(h).changedAt,
+        ),
+    ];
   }
 
   Future<TranslationRow?> _byId(int id) =>

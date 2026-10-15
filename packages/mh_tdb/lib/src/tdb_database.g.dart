@@ -1804,6 +1804,738 @@ class BuildsCompanion extends UpdateCompanion<BuildRow> {
   }
 }
 
+class $TranslationHistoriesTable extends TranslationHistories
+    with TableInfo<$TranslationHistoriesTable, TranslationHistoryRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TranslationHistoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _translationIdMeta =
+      const VerificationMeta('translationId');
+  @override
+  late final GeneratedColumn<int> translationId = GeneratedColumn<int>(
+      'translation_id', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: true,
+      $customConstraints: 'NOT NULL REFERENCES translation (id)');
+  static const VerificationMeta _revisionMeta =
+      const VerificationMeta('revision');
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+      'revision', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _text_Meta = const VerificationMeta('text_');
+  @override
+  late final GeneratedColumn<String> text_ = GeneratedColumn<String>(
+      'text', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _authorIdMeta =
+      const VerificationMeta('authorId');
+  @override
+  late final GeneratedColumn<String> authorId = GeneratedColumn<String>(
+      'author_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _changedAtMeta =
+      const VerificationMeta('changedAt');
+  @override
+  late final GeneratedColumn<DateTime> changedAt = GeneratedColumn<DateTime>(
+      'changed_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, translationId, revision, text_, status, authorId, changedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'translation_history';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<TranslationHistoryRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('translation_id')) {
+      context.handle(
+          _translationIdMeta,
+          translationId.isAcceptableOrUnknown(
+              data['translation_id']!, _translationIdMeta));
+    } else if (isInserting) {
+      context.missing(_translationIdMeta);
+    }
+    if (data.containsKey('revision')) {
+      context.handle(_revisionMeta,
+          revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta));
+    } else if (isInserting) {
+      context.missing(_revisionMeta);
+    }
+    if (data.containsKey('text')) {
+      context.handle(
+          _text_Meta, text_.isAcceptableOrUnknown(data['text']!, _text_Meta));
+    } else if (isInserting) {
+      context.missing(_text_Meta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('author_id')) {
+      context.handle(_authorIdMeta,
+          authorId.isAcceptableOrUnknown(data['author_id']!, _authorIdMeta));
+    }
+    if (data.containsKey('changed_at')) {
+      context.handle(_changedAtMeta,
+          changedAt.isAcceptableOrUnknown(data['changed_at']!, _changedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+        {translationId, revision},
+      ];
+  @override
+  TranslationHistoryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TranslationHistoryRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      translationId: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}translation_id'])!,
+      revision: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}revision'])!,
+      text_: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}text'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      authorId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}author_id']),
+      changedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}changed_at'])!,
+    );
+  }
+
+  @override
+  $TranslationHistoriesTable createAlias(String alias) {
+    return $TranslationHistoriesTable(attachedDatabase, alias);
+  }
+}
+
+class TranslationHistoryRow extends DataClass
+    implements Insertable<TranslationHistoryRow> {
+  final int id;
+  final int translationId;
+  final int revision;
+  final String text_;
+  final String status;
+  final String? authorId;
+  final DateTime changedAt;
+  const TranslationHistoryRow(
+      {required this.id,
+      required this.translationId,
+      required this.revision,
+      required this.text_,
+      required this.status,
+      this.authorId,
+      required this.changedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['translation_id'] = Variable<int>(translationId);
+    map['revision'] = Variable<int>(revision);
+    map['text'] = Variable<String>(text_);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || authorId != null) {
+      map['author_id'] = Variable<String>(authorId);
+    }
+    map['changed_at'] = Variable<DateTime>(changedAt);
+    return map;
+  }
+
+  TranslationHistoriesCompanion toCompanion(bool nullToAbsent) {
+    return TranslationHistoriesCompanion(
+      id: Value(id),
+      translationId: Value(translationId),
+      revision: Value(revision),
+      text_: Value(text_),
+      status: Value(status),
+      authorId: authorId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(authorId),
+      changedAt: Value(changedAt),
+    );
+  }
+
+  factory TranslationHistoryRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TranslationHistoryRow(
+      id: serializer.fromJson<int>(json['id']),
+      translationId: serializer.fromJson<int>(json['translationId']),
+      revision: serializer.fromJson<int>(json['revision']),
+      text_: serializer.fromJson<String>(json['text_']),
+      status: serializer.fromJson<String>(json['status']),
+      authorId: serializer.fromJson<String?>(json['authorId']),
+      changedAt: serializer.fromJson<DateTime>(json['changedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'translationId': serializer.toJson<int>(translationId),
+      'revision': serializer.toJson<int>(revision),
+      'text_': serializer.toJson<String>(text_),
+      'status': serializer.toJson<String>(status),
+      'authorId': serializer.toJson<String?>(authorId),
+      'changedAt': serializer.toJson<DateTime>(changedAt),
+    };
+  }
+
+  TranslationHistoryRow copyWith(
+          {int? id,
+          int? translationId,
+          int? revision,
+          String? text_,
+          String? status,
+          Value<String?> authorId = const Value.absent(),
+          DateTime? changedAt}) =>
+      TranslationHistoryRow(
+        id: id ?? this.id,
+        translationId: translationId ?? this.translationId,
+        revision: revision ?? this.revision,
+        text_: text_ ?? this.text_,
+        status: status ?? this.status,
+        authorId: authorId.present ? authorId.value : this.authorId,
+        changedAt: changedAt ?? this.changedAt,
+      );
+  TranslationHistoryRow copyWithCompanion(TranslationHistoriesCompanion data) {
+    return TranslationHistoryRow(
+      id: data.id.present ? data.id.value : this.id,
+      translationId: data.translationId.present
+          ? data.translationId.value
+          : this.translationId,
+      revision: data.revision.present ? data.revision.value : this.revision,
+      text_: data.text_.present ? data.text_.value : this.text_,
+      status: data.status.present ? data.status.value : this.status,
+      authorId: data.authorId.present ? data.authorId.value : this.authorId,
+      changedAt: data.changedAt.present ? data.changedAt.value : this.changedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TranslationHistoryRow(')
+          ..write('id: $id, ')
+          ..write('translationId: $translationId, ')
+          ..write('revision: $revision, ')
+          ..write('text_: $text_, ')
+          ..write('status: $status, ')
+          ..write('authorId: $authorId, ')
+          ..write('changedAt: $changedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id, translationId, revision, text_, status, authorId, changedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TranslationHistoryRow &&
+          other.id == this.id &&
+          other.translationId == this.translationId &&
+          other.revision == this.revision &&
+          other.text_ == this.text_ &&
+          other.status == this.status &&
+          other.authorId == this.authorId &&
+          other.changedAt == this.changedAt);
+}
+
+class TranslationHistoriesCompanion
+    extends UpdateCompanion<TranslationHistoryRow> {
+  final Value<int> id;
+  final Value<int> translationId;
+  final Value<int> revision;
+  final Value<String> text_;
+  final Value<String> status;
+  final Value<String?> authorId;
+  final Value<DateTime> changedAt;
+  const TranslationHistoriesCompanion({
+    this.id = const Value.absent(),
+    this.translationId = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.text_ = const Value.absent(),
+    this.status = const Value.absent(),
+    this.authorId = const Value.absent(),
+    this.changedAt = const Value.absent(),
+  });
+  TranslationHistoriesCompanion.insert({
+    this.id = const Value.absent(),
+    required int translationId,
+    required int revision,
+    required String text_,
+    required String status,
+    this.authorId = const Value.absent(),
+    this.changedAt = const Value.absent(),
+  })  : translationId = Value(translationId),
+        revision = Value(revision),
+        text_ = Value(text_),
+        status = Value(status);
+  static Insertable<TranslationHistoryRow> custom({
+    Expression<int>? id,
+    Expression<int>? translationId,
+    Expression<int>? revision,
+    Expression<String>? text_,
+    Expression<String>? status,
+    Expression<String>? authorId,
+    Expression<DateTime>? changedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (translationId != null) 'translation_id': translationId,
+      if (revision != null) 'revision': revision,
+      if (text_ != null) 'text': text_,
+      if (status != null) 'status': status,
+      if (authorId != null) 'author_id': authorId,
+      if (changedAt != null) 'changed_at': changedAt,
+    });
+  }
+
+  TranslationHistoriesCompanion copyWith(
+      {Value<int>? id,
+      Value<int>? translationId,
+      Value<int>? revision,
+      Value<String>? text_,
+      Value<String>? status,
+      Value<String?>? authorId,
+      Value<DateTime>? changedAt}) {
+    return TranslationHistoriesCompanion(
+      id: id ?? this.id,
+      translationId: translationId ?? this.translationId,
+      revision: revision ?? this.revision,
+      text_: text_ ?? this.text_,
+      status: status ?? this.status,
+      authorId: authorId ?? this.authorId,
+      changedAt: changedAt ?? this.changedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (translationId.present) {
+      map['translation_id'] = Variable<int>(translationId.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (text_.present) {
+      map['text'] = Variable<String>(text_.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (authorId.present) {
+      map['author_id'] = Variable<String>(authorId.value);
+    }
+    if (changedAt.present) {
+      map['changed_at'] = Variable<DateTime>(changedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TranslationHistoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('translationId: $translationId, ')
+          ..write('revision: $revision, ')
+          ..write('text_: $text_, ')
+          ..write('status: $status, ')
+          ..write('authorId: $authorId, ')
+          ..write('changedAt: $changedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $GlossaryTermsTable extends GlossaryTerms
+    with TableInfo<$GlossaryTermsTable, GlossaryTermRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $GlossaryTermsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+      'id', aliasedName, false,
+      hasAutoIncrement: true,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _localeMeta = const VerificationMeta('locale');
+  @override
+  late final GeneratedColumn<String> locale = GeneratedColumn<String>(
+      'locale', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sourceTermMeta =
+      const VerificationMeta('sourceTerm');
+  @override
+  late final GeneratedColumn<String> sourceTerm = GeneratedColumn<String>(
+      'source_term', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _targetTermMeta =
+      const VerificationMeta('targetTerm');
+  @override
+  late final GeneratedColumn<String> targetTerm = GeneratedColumn<String>(
+      'target_term', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _mandatoryMeta =
+      const VerificationMeta('mandatory');
+  @override
+  late final GeneratedColumn<bool> mandatory = GeneratedColumn<bool>(
+      'mandatory', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("mandatory" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, locale, sourceTerm, targetTerm, note, mandatory];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'glossary_term';
+  @override
+  VerificationContext validateIntegrity(Insertable<GlossaryTermRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('locale')) {
+      context.handle(_localeMeta,
+          locale.isAcceptableOrUnknown(data['locale']!, _localeMeta));
+    } else if (isInserting) {
+      context.missing(_localeMeta);
+    }
+    if (data.containsKey('source_term')) {
+      context.handle(
+          _sourceTermMeta,
+          sourceTerm.isAcceptableOrUnknown(
+              data['source_term']!, _sourceTermMeta));
+    } else if (isInserting) {
+      context.missing(_sourceTermMeta);
+    }
+    if (data.containsKey('target_term')) {
+      context.handle(
+          _targetTermMeta,
+          targetTerm.isAcceptableOrUnknown(
+              data['target_term']!, _targetTermMeta));
+    } else if (isInserting) {
+      context.missing(_targetTermMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('mandatory')) {
+      context.handle(_mandatoryMeta,
+          mandatory.isAcceptableOrUnknown(data['mandatory']!, _mandatoryMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+        {locale, sourceTerm},
+      ];
+  @override
+  GlossaryTermRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return GlossaryTermRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      locale: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}locale'])!,
+      sourceTerm: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_term'])!,
+      targetTerm: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}target_term'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      mandatory: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}mandatory'])!,
+    );
+  }
+
+  @override
+  $GlossaryTermsTable createAlias(String alias) {
+    return $GlossaryTermsTable(attachedDatabase, alias);
+  }
+}
+
+class GlossaryTermRow extends DataClass implements Insertable<GlossaryTermRow> {
+  final int id;
+  final String locale;
+  final String sourceTerm;
+  final String targetTerm;
+  final String? note;
+
+  /// Terme obligatoire : le linter signale une traduction qui ne l'emploie pas.
+  final bool mandatory;
+  const GlossaryTermRow(
+      {required this.id,
+      required this.locale,
+      required this.sourceTerm,
+      required this.targetTerm,
+      this.note,
+      required this.mandatory});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['locale'] = Variable<String>(locale);
+    map['source_term'] = Variable<String>(sourceTerm);
+    map['target_term'] = Variable<String>(targetTerm);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['mandatory'] = Variable<bool>(mandatory);
+    return map;
+  }
+
+  GlossaryTermsCompanion toCompanion(bool nullToAbsent) {
+    return GlossaryTermsCompanion(
+      id: Value(id),
+      locale: Value(locale),
+      sourceTerm: Value(sourceTerm),
+      targetTerm: Value(targetTerm),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      mandatory: Value(mandatory),
+    );
+  }
+
+  factory GlossaryTermRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return GlossaryTermRow(
+      id: serializer.fromJson<int>(json['id']),
+      locale: serializer.fromJson<String>(json['locale']),
+      sourceTerm: serializer.fromJson<String>(json['sourceTerm']),
+      targetTerm: serializer.fromJson<String>(json['targetTerm']),
+      note: serializer.fromJson<String?>(json['note']),
+      mandatory: serializer.fromJson<bool>(json['mandatory']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'locale': serializer.toJson<String>(locale),
+      'sourceTerm': serializer.toJson<String>(sourceTerm),
+      'targetTerm': serializer.toJson<String>(targetTerm),
+      'note': serializer.toJson<String?>(note),
+      'mandatory': serializer.toJson<bool>(mandatory),
+    };
+  }
+
+  GlossaryTermRow copyWith(
+          {int? id,
+          String? locale,
+          String? sourceTerm,
+          String? targetTerm,
+          Value<String?> note = const Value.absent(),
+          bool? mandatory}) =>
+      GlossaryTermRow(
+        id: id ?? this.id,
+        locale: locale ?? this.locale,
+        sourceTerm: sourceTerm ?? this.sourceTerm,
+        targetTerm: targetTerm ?? this.targetTerm,
+        note: note.present ? note.value : this.note,
+        mandatory: mandatory ?? this.mandatory,
+      );
+  GlossaryTermRow copyWithCompanion(GlossaryTermsCompanion data) {
+    return GlossaryTermRow(
+      id: data.id.present ? data.id.value : this.id,
+      locale: data.locale.present ? data.locale.value : this.locale,
+      sourceTerm:
+          data.sourceTerm.present ? data.sourceTerm.value : this.sourceTerm,
+      targetTerm:
+          data.targetTerm.present ? data.targetTerm.value : this.targetTerm,
+      note: data.note.present ? data.note.value : this.note,
+      mandatory: data.mandatory.present ? data.mandatory.value : this.mandatory,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GlossaryTermRow(')
+          ..write('id: $id, ')
+          ..write('locale: $locale, ')
+          ..write('sourceTerm: $sourceTerm, ')
+          ..write('targetTerm: $targetTerm, ')
+          ..write('note: $note, ')
+          ..write('mandatory: $mandatory')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, locale, sourceTerm, targetTerm, note, mandatory);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is GlossaryTermRow &&
+          other.id == this.id &&
+          other.locale == this.locale &&
+          other.sourceTerm == this.sourceTerm &&
+          other.targetTerm == this.targetTerm &&
+          other.note == this.note &&
+          other.mandatory == this.mandatory);
+}
+
+class GlossaryTermsCompanion extends UpdateCompanion<GlossaryTermRow> {
+  final Value<int> id;
+  final Value<String> locale;
+  final Value<String> sourceTerm;
+  final Value<String> targetTerm;
+  final Value<String?> note;
+  final Value<bool> mandatory;
+  const GlossaryTermsCompanion({
+    this.id = const Value.absent(),
+    this.locale = const Value.absent(),
+    this.sourceTerm = const Value.absent(),
+    this.targetTerm = const Value.absent(),
+    this.note = const Value.absent(),
+    this.mandatory = const Value.absent(),
+  });
+  GlossaryTermsCompanion.insert({
+    this.id = const Value.absent(),
+    required String locale,
+    required String sourceTerm,
+    required String targetTerm,
+    this.note = const Value.absent(),
+    this.mandatory = const Value.absent(),
+  })  : locale = Value(locale),
+        sourceTerm = Value(sourceTerm),
+        targetTerm = Value(targetTerm);
+  static Insertable<GlossaryTermRow> custom({
+    Expression<int>? id,
+    Expression<String>? locale,
+    Expression<String>? sourceTerm,
+    Expression<String>? targetTerm,
+    Expression<String>? note,
+    Expression<bool>? mandatory,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (locale != null) 'locale': locale,
+      if (sourceTerm != null) 'source_term': sourceTerm,
+      if (targetTerm != null) 'target_term': targetTerm,
+      if (note != null) 'note': note,
+      if (mandatory != null) 'mandatory': mandatory,
+    });
+  }
+
+  GlossaryTermsCompanion copyWith(
+      {Value<int>? id,
+      Value<String>? locale,
+      Value<String>? sourceTerm,
+      Value<String>? targetTerm,
+      Value<String?>? note,
+      Value<bool>? mandatory}) {
+    return GlossaryTermsCompanion(
+      id: id ?? this.id,
+      locale: locale ?? this.locale,
+      sourceTerm: sourceTerm ?? this.sourceTerm,
+      targetTerm: targetTerm ?? this.targetTerm,
+      note: note ?? this.note,
+      mandatory: mandatory ?? this.mandatory,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (locale.present) {
+      map['locale'] = Variable<String>(locale.value);
+    }
+    if (sourceTerm.present) {
+      map['source_term'] = Variable<String>(sourceTerm.value);
+    }
+    if (targetTerm.present) {
+      map['target_term'] = Variable<String>(targetTerm.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (mandatory.present) {
+      map['mandatory'] = Variable<bool>(mandatory.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('GlossaryTermsCompanion(')
+          ..write('id: $id, ')
+          ..write('locale: $locale, ')
+          ..write('sourceTerm: $sourceTerm, ')
+          ..write('targetTerm: $targetTerm, ')
+          ..write('note: $note, ')
+          ..write('mandatory: $mandatory')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$TdbDatabase extends GeneratedDatabase {
   _$TdbDatabase(QueryExecutor e) : super(e);
   $TdbDatabaseManager get managers => $TdbDatabaseManager(this);
@@ -1811,12 +2543,21 @@ abstract class _$TdbDatabase extends GeneratedDatabase {
   late final $SourceStringsTable sourceStrings = $SourceStringsTable(this);
   late final $TranslationsTable translations = $TranslationsTable(this);
   late final $BuildsTable builds = $BuildsTable(this);
+  late final $TranslationHistoriesTable translationHistories =
+      $TranslationHistoriesTable(this);
+  late final $GlossaryTermsTable glossaryTerms = $GlossaryTermsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [gameFiles, sourceStrings, translations, builds];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+        gameFiles,
+        sourceStrings,
+        translations,
+        builds,
+        translationHistories,
+        glossaryTerms
+      ];
 }
 
 typedef $$GameFilesTableCreateCompanionBuilder = GameFilesCompanion Function({
@@ -2548,6 +3289,25 @@ final class $$TranslationsTableReferences
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: [item]));
   }
+
+  static MultiTypedResultKey<$TranslationHistoriesTable,
+      List<TranslationHistoryRow>> _translationHistoriesRefsTable(
+          _$TdbDatabase db) =>
+      MultiTypedResultKey.fromTable(db.translationHistories,
+          aliasName: $_aliasNameGenerator(
+              db.translations.id, db.translationHistories.translationId));
+
+  $$TranslationHistoriesTableProcessedTableManager
+      get translationHistoriesRefs {
+    final manager = $$TranslationHistoriesTableTableManager(
+            $_db, $_db.translationHistories)
+        .filter((f) => f.translationId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache =
+        $_typedResult.readTableOrNull(_translationHistoriesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$TranslationsTableFilterComposer
@@ -2604,6 +3364,28 @@ class $$TranslationsTableFilterComposer
                   $removeJoinBuilderFromRootComposer,
             ));
     return composer;
+  }
+
+  Expression<bool> translationHistoriesRefs(
+      Expression<bool> Function($$TranslationHistoriesTableFilterComposer f)
+          f) {
+    final $$TranslationHistoriesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.translationHistories,
+        getReferencedColumn: (t) => t.translationId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TranslationHistoriesTableFilterComposer(
+              $db: $db,
+              $table: $db.translationHistories,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
   }
 }
 
@@ -2719,6 +3501,29 @@ class $$TranslationsTableAnnotationComposer
             ));
     return composer;
   }
+
+  Expression<T> translationHistoriesRefs<T extends Object>(
+      Expression<T> Function($$TranslationHistoriesTableAnnotationComposer a)
+          f) {
+    final $$TranslationHistoriesTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.translationHistories,
+            getReferencedColumn: (t) => t.translationId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$TranslationHistoriesTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.translationHistories,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
 }
 
 class $$TranslationsTableTableManager extends RootTableManager<
@@ -2732,7 +3537,7 @@ class $$TranslationsTableTableManager extends RootTableManager<
     $$TranslationsTableUpdateCompanionBuilder,
     (TranslationRow, $$TranslationsTableReferences),
     TranslationRow,
-    PrefetchHooks Function({bool sourceId})> {
+    PrefetchHooks Function({bool sourceId, bool translationHistoriesRefs})> {
   $$TranslationsTableTableManager(_$TdbDatabase db, $TranslationsTable table)
       : super(TableManagerState(
           db: db,
@@ -2797,10 +3602,13 @@ class $$TranslationsTableTableManager extends RootTableManager<
                     $$TranslationsTableReferences(db, table, e)
                   ))
               .toList(),
-          prefetchHooksCallback: ({sourceId = false}) {
+          prefetchHooksCallback: (
+              {sourceId = false, translationHistoriesRefs = false}) {
             return PrefetchHooks(
               db: db,
-              explicitlyWatchedTables: [],
+              explicitlyWatchedTables: [
+                if (translationHistoriesRefs) db.translationHistories
+              ],
               addJoins: <
                   T extends TableManagerState<
                       dynamic,
@@ -2828,7 +3636,21 @@ class $$TranslationsTableTableManager extends RootTableManager<
                 return state;
               },
               getPrefetchedDataCallback: (items) async {
-                return [];
+                return [
+                  if (translationHistoriesRefs)
+                    await $_getPrefetchedData<TranslationRow,
+                            $TranslationsTable, TranslationHistoryRow>(
+                        currentTable: table,
+                        referencedTable: $$TranslationsTableReferences
+                            ._translationHistoriesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$TranslationsTableReferences(db, table, p0)
+                                .translationHistoriesRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.translationId == item.id),
+                        typedResults: items)
+                ];
               },
             );
           },
@@ -2846,7 +3668,7 @@ typedef $$TranslationsTableProcessedTableManager = ProcessedTableManager<
     $$TranslationsTableUpdateCompanionBuilder,
     (TranslationRow, $$TranslationsTableReferences),
     TranslationRow,
-    PrefetchHooks Function({bool sourceId})>;
+    PrefetchHooks Function({bool sourceId, bool translationHistoriesRefs})>;
 typedef $$BuildsTableCreateCompanionBuilder = BuildsCompanion Function({
   Value<int> id,
   required String isoMd5,
@@ -3053,6 +3875,493 @@ typedef $$BuildsTableProcessedTableManager = ProcessedTableManager<
     (BuildRow, BaseReferences<_$TdbDatabase, $BuildsTable, BuildRow>),
     BuildRow,
     PrefetchHooks Function()>;
+typedef $$TranslationHistoriesTableCreateCompanionBuilder
+    = TranslationHistoriesCompanion Function({
+  Value<int> id,
+  required int translationId,
+  required int revision,
+  required String text_,
+  required String status,
+  Value<String?> authorId,
+  Value<DateTime> changedAt,
+});
+typedef $$TranslationHistoriesTableUpdateCompanionBuilder
+    = TranslationHistoriesCompanion Function({
+  Value<int> id,
+  Value<int> translationId,
+  Value<int> revision,
+  Value<String> text_,
+  Value<String> status,
+  Value<String?> authorId,
+  Value<DateTime> changedAt,
+});
+
+final class $$TranslationHistoriesTableReferences extends BaseReferences<
+    _$TdbDatabase, $TranslationHistoriesTable, TranslationHistoryRow> {
+  $$TranslationHistoriesTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $TranslationsTable _translationIdTable(_$TdbDatabase db) =>
+      db.translations.createAlias($_aliasNameGenerator(
+          db.translationHistories.translationId, db.translations.id));
+
+  $$TranslationsTableProcessedTableManager get translationId {
+    final $_column = $_itemColumn<int>('translation_id')!;
+
+    final manager = $$TranslationsTableTableManager($_db, $_db.translations)
+        .filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_translationIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$TranslationHistoriesTableFilterComposer
+    extends Composer<_$TdbDatabase, $TranslationHistoriesTable> {
+  $$TranslationHistoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get revision => $composableBuilder(
+      column: $table.revision, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get text_ => $composableBuilder(
+      column: $table.text_, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get authorId => $composableBuilder(
+      column: $table.authorId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get changedAt => $composableBuilder(
+      column: $table.changedAt, builder: (column) => ColumnFilters(column));
+
+  $$TranslationsTableFilterComposer get translationId {
+    final $$TranslationsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.translationId,
+        referencedTable: $db.translations,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TranslationsTableFilterComposer(
+              $db: $db,
+              $table: $db.translations,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$TranslationHistoriesTableOrderingComposer
+    extends Composer<_$TdbDatabase, $TranslationHistoriesTable> {
+  $$TranslationHistoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get revision => $composableBuilder(
+      column: $table.revision, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get text_ => $composableBuilder(
+      column: $table.text_, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get authorId => $composableBuilder(
+      column: $table.authorId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get changedAt => $composableBuilder(
+      column: $table.changedAt, builder: (column) => ColumnOrderings(column));
+
+  $$TranslationsTableOrderingComposer get translationId {
+    final $$TranslationsTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.translationId,
+        referencedTable: $db.translations,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TranslationsTableOrderingComposer(
+              $db: $db,
+              $table: $db.translations,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$TranslationHistoriesTableAnnotationComposer
+    extends Composer<_$TdbDatabase, $TranslationHistoriesTable> {
+  $$TranslationHistoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get revision =>
+      $composableBuilder(column: $table.revision, builder: (column) => column);
+
+  GeneratedColumn<String> get text_ =>
+      $composableBuilder(column: $table.text_, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get authorId =>
+      $composableBuilder(column: $table.authorId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get changedAt =>
+      $composableBuilder(column: $table.changedAt, builder: (column) => column);
+
+  $$TranslationsTableAnnotationComposer get translationId {
+    final $$TranslationsTableAnnotationComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.translationId,
+        referencedTable: $db.translations,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$TranslationsTableAnnotationComposer(
+              $db: $db,
+              $table: $db.translations,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$TranslationHistoriesTableTableManager extends RootTableManager<
+    _$TdbDatabase,
+    $TranslationHistoriesTable,
+    TranslationHistoryRow,
+    $$TranslationHistoriesTableFilterComposer,
+    $$TranslationHistoriesTableOrderingComposer,
+    $$TranslationHistoriesTableAnnotationComposer,
+    $$TranslationHistoriesTableCreateCompanionBuilder,
+    $$TranslationHistoriesTableUpdateCompanionBuilder,
+    (TranslationHistoryRow, $$TranslationHistoriesTableReferences),
+    TranslationHistoryRow,
+    PrefetchHooks Function({bool translationId})> {
+  $$TranslationHistoriesTableTableManager(
+      _$TdbDatabase db, $TranslationHistoriesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TranslationHistoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TranslationHistoriesTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TranslationHistoriesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<int> translationId = const Value.absent(),
+            Value<int> revision = const Value.absent(),
+            Value<String> text_ = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> authorId = const Value.absent(),
+            Value<DateTime> changedAt = const Value.absent(),
+          }) =>
+              TranslationHistoriesCompanion(
+            id: id,
+            translationId: translationId,
+            revision: revision,
+            text_: text_,
+            status: status,
+            authorId: authorId,
+            changedAt: changedAt,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required int translationId,
+            required int revision,
+            required String text_,
+            required String status,
+            Value<String?> authorId = const Value.absent(),
+            Value<DateTime> changedAt = const Value.absent(),
+          }) =>
+              TranslationHistoriesCompanion.insert(
+            id: id,
+            translationId: translationId,
+            revision: revision,
+            text_: text_,
+            status: status,
+            authorId: authorId,
+            changedAt: changedAt,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$TranslationHistoriesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({translationId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (translationId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.translationId,
+                    referencedTable: $$TranslationHistoriesTableReferences
+                        ._translationIdTable(db),
+                    referencedColumn: $$TranslationHistoriesTableReferences
+                        ._translationIdTable(db)
+                        .id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$TranslationHistoriesTableProcessedTableManager
+    = ProcessedTableManager<
+        _$TdbDatabase,
+        $TranslationHistoriesTable,
+        TranslationHistoryRow,
+        $$TranslationHistoriesTableFilterComposer,
+        $$TranslationHistoriesTableOrderingComposer,
+        $$TranslationHistoriesTableAnnotationComposer,
+        $$TranslationHistoriesTableCreateCompanionBuilder,
+        $$TranslationHistoriesTableUpdateCompanionBuilder,
+        (TranslationHistoryRow, $$TranslationHistoriesTableReferences),
+        TranslationHistoryRow,
+        PrefetchHooks Function({bool translationId})>;
+typedef $$GlossaryTermsTableCreateCompanionBuilder = GlossaryTermsCompanion
+    Function({
+  Value<int> id,
+  required String locale,
+  required String sourceTerm,
+  required String targetTerm,
+  Value<String?> note,
+  Value<bool> mandatory,
+});
+typedef $$GlossaryTermsTableUpdateCompanionBuilder = GlossaryTermsCompanion
+    Function({
+  Value<int> id,
+  Value<String> locale,
+  Value<String> sourceTerm,
+  Value<String> targetTerm,
+  Value<String?> note,
+  Value<bool> mandatory,
+});
+
+class $$GlossaryTermsTableFilterComposer
+    extends Composer<_$TdbDatabase, $GlossaryTermsTable> {
+  $$GlossaryTermsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get locale => $composableBuilder(
+      column: $table.locale, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceTerm => $composableBuilder(
+      column: $table.sourceTerm, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get targetTerm => $composableBuilder(
+      column: $table.targetTerm, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get mandatory => $composableBuilder(
+      column: $table.mandatory, builder: (column) => ColumnFilters(column));
+}
+
+class $$GlossaryTermsTableOrderingComposer
+    extends Composer<_$TdbDatabase, $GlossaryTermsTable> {
+  $$GlossaryTermsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get locale => $composableBuilder(
+      column: $table.locale, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceTerm => $composableBuilder(
+      column: $table.sourceTerm, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get targetTerm => $composableBuilder(
+      column: $table.targetTerm, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get mandatory => $composableBuilder(
+      column: $table.mandatory, builder: (column) => ColumnOrderings(column));
+}
+
+class $$GlossaryTermsTableAnnotationComposer
+    extends Composer<_$TdbDatabase, $GlossaryTermsTable> {
+  $$GlossaryTermsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get locale =>
+      $composableBuilder(column: $table.locale, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceTerm => $composableBuilder(
+      column: $table.sourceTerm, builder: (column) => column);
+
+  GeneratedColumn<String> get targetTerm => $composableBuilder(
+      column: $table.targetTerm, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<bool> get mandatory =>
+      $composableBuilder(column: $table.mandatory, builder: (column) => column);
+}
+
+class $$GlossaryTermsTableTableManager extends RootTableManager<
+    _$TdbDatabase,
+    $GlossaryTermsTable,
+    GlossaryTermRow,
+    $$GlossaryTermsTableFilterComposer,
+    $$GlossaryTermsTableOrderingComposer,
+    $$GlossaryTermsTableAnnotationComposer,
+    $$GlossaryTermsTableCreateCompanionBuilder,
+    $$GlossaryTermsTableUpdateCompanionBuilder,
+    (
+      GlossaryTermRow,
+      BaseReferences<_$TdbDatabase, $GlossaryTermsTable, GlossaryTermRow>
+    ),
+    GlossaryTermRow,
+    PrefetchHooks Function()> {
+  $$GlossaryTermsTableTableManager(_$TdbDatabase db, $GlossaryTermsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$GlossaryTermsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$GlossaryTermsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$GlossaryTermsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            Value<String> locale = const Value.absent(),
+            Value<String> sourceTerm = const Value.absent(),
+            Value<String> targetTerm = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<bool> mandatory = const Value.absent(),
+          }) =>
+              GlossaryTermsCompanion(
+            id: id,
+            locale: locale,
+            sourceTerm: sourceTerm,
+            targetTerm: targetTerm,
+            note: note,
+            mandatory: mandatory,
+          ),
+          createCompanionCallback: ({
+            Value<int> id = const Value.absent(),
+            required String locale,
+            required String sourceTerm,
+            required String targetTerm,
+            Value<String?> note = const Value.absent(),
+            Value<bool> mandatory = const Value.absent(),
+          }) =>
+              GlossaryTermsCompanion.insert(
+            id: id,
+            locale: locale,
+            sourceTerm: sourceTerm,
+            targetTerm: targetTerm,
+            note: note,
+            mandatory: mandatory,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$GlossaryTermsTableProcessedTableManager = ProcessedTableManager<
+    _$TdbDatabase,
+    $GlossaryTermsTable,
+    GlossaryTermRow,
+    $$GlossaryTermsTableFilterComposer,
+    $$GlossaryTermsTableOrderingComposer,
+    $$GlossaryTermsTableAnnotationComposer,
+    $$GlossaryTermsTableCreateCompanionBuilder,
+    $$GlossaryTermsTableUpdateCompanionBuilder,
+    (
+      GlossaryTermRow,
+      BaseReferences<_$TdbDatabase, $GlossaryTermsTable, GlossaryTermRow>
+    ),
+    GlossaryTermRow,
+    PrefetchHooks Function()>;
 
 class $TdbDatabaseManager {
   final _$TdbDatabase _db;
@@ -3065,4 +4374,8 @@ class $TdbDatabaseManager {
       $$TranslationsTableTableManager(_db, _db.translations);
   $$BuildsTableTableManager get builds =>
       $$BuildsTableTableManager(_db, _db.builds);
+  $$TranslationHistoriesTableTableManager get translationHistories =>
+      $$TranslationHistoriesTableTableManager(_db, _db.translationHistories);
+  $$GlossaryTermsTableTableManager get glossaryTerms =>
+      $$GlossaryTermsTableTableManager(_db, _db.glossaryTerms);
 }
