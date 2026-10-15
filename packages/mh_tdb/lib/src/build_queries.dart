@@ -100,3 +100,10 @@ Future<int> recordBuild(
             reportJson: Value(reportJson),
           ),
         );
+
+/// Dernières lignes `build`, la plus récente d'abord.
+Future<List<BuildRow>> recentBuilds(TdbDatabase db, {int limit = 20}) =>
+    (db.select(db.builds)
+          ..orderBy([(t) => OrderingTerm.desc(t.id)])
+          ..limit(limit))
+        .get();

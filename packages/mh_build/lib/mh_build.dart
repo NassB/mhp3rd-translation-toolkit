@@ -7,6 +7,7 @@ export 'src/file_budgets.dart';
 export 'src/live_file_budget.dart';
 export 'src/project.dart';
 export 'src/run_build.dart';
+export 'src/validated_files.dart';
 
 /// Nom du paquet (test de fumée).
 const String mhBuildPackageName = 'mh_build';

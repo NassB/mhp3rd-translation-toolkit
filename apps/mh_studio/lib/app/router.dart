@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../features/build/presentation/build_page.dart';
 import '../features/editor/presentation/file_editor_page.dart';
 import '../features/glossary/presentation/glossary_page.dart';
 import '../features/project/presentation/home_page.dart';
@@ -11,6 +12,7 @@ abstract final class Routes {
   static const project = '/project';
 
   static const glossary = '/glossary';
+  static const build = '/build';
 
   /// Éditeur du fichier [id].
   static String file(int id) => '/file/$id';
@@ -22,6 +24,7 @@ GoRouter buildRouter() => GoRouter(
     GoRoute(path: Routes.home, builder: (_, _) => const HomePage()),
     GoRoute(path: Routes.project, builder: (_, _) => const ProjectPage()),
     GoRoute(path: Routes.glossary, builder: (_, _) => const GlossaryPage()),
+    GoRoute(path: Routes.build, builder: (_, _) => const BuildPage()),
     GoRoute(
       path: '/file/:id',
       builder: (_, state) =>

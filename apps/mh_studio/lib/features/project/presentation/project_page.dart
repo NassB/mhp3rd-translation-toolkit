@@ -22,6 +22,11 @@ class ProjectPage extends ConsumerWidget {
         ),
         actions: [
           TextButton(
+            key: const Key('open-build'),
+            onPressed: () => context.push(Routes.build),
+            child: const Text('Build'),
+          ),
+          TextButton(
             key: const Key('open-glossary'),
             onPressed: () => context.push(Routes.glossary),
             child: const Text('Glossaire'),

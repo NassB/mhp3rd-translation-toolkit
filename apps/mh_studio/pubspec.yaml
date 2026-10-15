@@ -30,6 +30,7 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   mh_binary: any
+  mh_budget: any
   mh_formats: any
   mh_build: any
   mh_tdb: any

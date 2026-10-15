@@ -13,6 +13,8 @@ import 'package:mh_iso/mh_iso.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
 import 'build_patch.dart';
+import 'project.dart';
+import 'validated_files.dart';
 
 /// Statuts enregistrés dans `build.status`.
 abstract final class BuildStatus {
@@ -196,4 +198,82 @@ bool _same(Uint8List a, Uint8List b) {
     if (a[i] != b[i]) return false;
   }
   return true;
+}
+
+/// Résumé d'un build, léger et transmissible entre isolates (ni patch ni
+/// octets du jeu).
+final class BuildSummary {
+  /// Voir les champs.
+  BuildSummary({
+    required this.status,
+    required this.buildId,
+    required this.tdbRevision,
+    required List<BudgetReport> files,
+    required List<String> verifyErrors,
+    required this.reportJson,
+    required this.outPath,
+  })  : files = List.unmodifiable(files),
+        verifyErrors = List.unmodifiable(verifyErrors);
+
+  /// Valeur de [BuildStatus].
+  final String status;
+  final int buildId;
+  final int tdbRevision;
+
+  /// Un rapport de budget par fichier construit.
+  final List<BudgetReport> files;
+  final List<String> verifyErrors;
+  final String reportJson;
+
+  /// Chemin de l'ISO demandé (écrit seulement si [ok]).
+  final String outPath;
+
+  /// Vrai si l'ISO est complet et vérifié.
+  bool get ok => status == BuildStatus.ok;
+}
+
+/// Construit le projet [project] vers [outPath] : ouvre l'ISO (MD5 vérifié) et
+/// la base, lance [runBuild], referme tout. Lourd (lit `DATA.BIN`) : à lancer
+/// hors du fil d'interface (`Isolate.run`). La liste blanche de la politique
+/// `slot` vient de [validatedFiles] (`config/validated_files.yaml`).
+Future<BuildSummary> runProjectBuild(
+  Project project, {
+  required String config,
+  required String outPath,
+  String profile = 'nightly',
+  String minStatus = 'translated',
+  BudgetPolicy policy = BudgetPolicy.strict,
+  String validatedFiles = 'config/validated_files.yaml',
+}) async {
+  final session = await IsoSession.open(project.isoPath, config);
+  final db = TdbDatabase.openFile(project.dbPath);
+  try {
+    final parent = File(outPath).absolute.parent;
+    if (!parent.existsSync()) parent.createSync(recursive: true);
+    final run = await runBuild(
+      db: db,
+      iso: session.image,
+      index: session.index,
+      readPlain: session.readPlain,
+      locale: project.locale,
+      outPath: outPath,
+      toolkitVersion: toolkitVersion,
+      profile: profile,
+      minStatus: minStatus,
+      policy: policy,
+      slotAllowedFileIds: loadValidatedFiles(validatedFiles),
+    );
+    return BuildSummary(
+      status: run.status,
+      buildId: run.buildId,
+      tdbRevision: run.tdbRevision,
+      files: run.result.reports,
+      verifyErrors: run.verifyErrors,
+      reportJson: run.reportJson,
+      outPath: outPath,
+    );
+  } finally {
+    await db.close();
+    session.close();
+  }
 }
