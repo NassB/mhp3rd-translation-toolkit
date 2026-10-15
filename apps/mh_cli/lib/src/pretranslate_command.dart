@@ -7,7 +7,7 @@ import 'package:mh_translate/mh_translate.dart';
 
 const String _usage = '''
 usage: mhtk pretranslate --project <dir> --file <id> --model <id>
-         [--endpoint http://localhost:1234/v1] [--limit N] [--include-drafts]
+         [--endpoint http://localhost:1234/v1] [--limit N] [--include-drafts] [--ai-drafts-only]
          [--dry-run] [--allow-remote]
        mhtk pretranslate --list-models [--endpoint ...]
 
@@ -38,7 +38,13 @@ Future<int> runPretranslate(
   final values = <String, String>{};
   final flags = <String>{};
   const withValue = {'project', 'file', 'model', 'endpoint', 'limit'};
-  const bare = {'include-drafts', 'dry-run', 'allow-remote', 'list-models'};
+  const bare = {
+    'include-drafts',
+    'ai-drafts-only',
+    'dry-run',
+    'allow-remote',
+    'list-models',
+  };
   for (var i = 0; i < args.length; i++) {
     final a = args[i];
     if (!a.startsWith('--')) {
@@ -117,7 +123,9 @@ Future<int> runPretranslate(
       throw TdbError('file not imported', fileId: fileId);
     }
     final options = PreTranslateOptions(
-      includeDrafts: flags.contains('include-drafts'),
+      includeDrafts:
+          flags.contains('include-drafts') || flags.contains('ai-drafts-only'),
+      aiDraftsOnly: flags.contains('ai-drafts-only'),
       limit: limit,
       prompt: PromptOptions(
         targetLanguage: languageNameOf(project.locale),

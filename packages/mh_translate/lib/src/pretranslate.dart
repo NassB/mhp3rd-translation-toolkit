@@ -90,6 +90,7 @@ final class PreTranslateOptions {
   /// Voir les champs.
   const PreTranslateOptions({
     this.includeDrafts = false,
+    this.aiDraftsOnly = false,
     this.maxUnits = 40,
     this.maxBatchTokens = 3000,
     this.fixedPromptTokens = 350,
@@ -109,6 +110,10 @@ final class PreTranslateOptions {
   /// Retraduire aussi les chaînes déjà en `draft` (jamais `translated` ou
   /// plus).
   final bool includeDrafts;
+
+  /// Avec [includeDrafts] : ne retraduit que les brouillons écrits par une IA
+  /// (`author_id` `ai:…`), jamais un brouillon saisi par un humain.
+  final bool aiDraftsOnly;
 
   /// Plafonds d'un lot (voir `buildBatches`).
   final int maxUnits;
@@ -649,7 +654,9 @@ _Selection _select(List<SlotView> slots, PreTranslateOptions options) {
     final t = s.translation;
     final todo = t == null ||
         t.status == 'untranslated' ||
-        (options.includeDrafts && t.status == 'draft');
+        (options.includeDrafts &&
+            t.status == 'draft' &&
+            (!options.aiDraftsOnly || (t.authorId ?? '').startsWith('ai:')));
     if (!todo) continue;
     if (s.sourceText.trim().isEmpty) {
       skippedEmpty++;

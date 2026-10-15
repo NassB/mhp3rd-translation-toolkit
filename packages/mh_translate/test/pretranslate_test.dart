@@ -164,6 +164,25 @@ void main() {
           if (!s.isAlias) s.sourceText: s.translation,
       };
 
+  test('aiDraftsOnly retranslates AI drafts but never a human draft', () async {
+    await run(ScriptedClient((r, _) => answer(r, dict))); // 4 brouillons IA
+    final client = ScriptedClient(
+      (r, _) => answer(r, {for (final e in dict.entries) e.key: '${e.value}!'}),
+    );
+    final report = await run(
+      client,
+      options: const PreTranslateOptions(
+        includeDrafts: true,
+        aiDraftsOnly: true,
+      ),
+    );
+    expect(report.candidates, 4); // hello, thanks, hunter, pen
+    expect(report.saved, 4);
+    final s = await stored();
+    expect(s[water]!.text, 'Eau (brouillon)'); // brouillon humain intact
+    expect(s[hello]!.text, endsWith('!'));
+  });
+
   test('translates the candidates as drafts and leaves the rest alone',
       () async {
     final client = ScriptedClient((r, _) => answer(r, dict));

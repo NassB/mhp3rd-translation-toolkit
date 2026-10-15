@@ -31,6 +31,8 @@ Future<void> main(List<String> a) async {
         final tc = codes(t.text);
         if (tc.join() != c.join()) {
           aiMismatch++;
+          print(
+              "mismatch: file ${f.id} table ${s.tableIdx} slot ${s.slotIdx} rev ${t.revision}");
           if (tc.length < c.length) aiMissing++;
         }
       }
