@@ -30,6 +30,7 @@ environment:
 # versions available, run `flutter pub outdated`.
 dependencies:
   mh_binary: any
+  mh_formats: any
   mh_build: any
   mh_tdb: any
   flutter:
@@ -42,7 +43,6 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
 
 dev_dependencies:
-  mh_formats: any
   build_runner: ^2.15.1
   riverpod_generator: ^4.0.3
   flutter_test:

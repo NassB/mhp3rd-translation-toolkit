@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mh_formats/mh_formats.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
+import '../../glossary/application/glossary_providers.dart';
 import '../application/file_editor.dart';
 import '../application/file_editor_state.dart';
+import 'lint_list.dart';
 import 'tokenized_text.dart';
 
 /// Panneau source | cible de la chaîne sélectionnée.
@@ -55,6 +58,20 @@ class _SlotEditorPanelState extends ConsumerState<SlotEditorPanel> {
     super.dispose();
   }
 
+  /// Insère [term] à la position du curseur (ou remplace la sélection).
+  void _insert(String term) {
+    final v = _controller.value;
+    final sel = v.selection.isValid
+        ? v.selection
+        : TextSelection.collapsed(offset: v.text.length);
+    final text = v.text.replaceRange(sel.start, sel.end, term);
+    _controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: sel.start + term.length),
+    );
+    _editor.setDraft(slot.sourceId, text: text);
+  }
+
   FileEditor get _editor =>
       ref.read(fileEditorProvider(widget.fileId).notifier);
 
@@ -67,6 +84,26 @@ class _SlotEditorPanelState extends ConsumerState<SlotEditorPanel> {
     final conflict = s.conflicts.containsKey(id);
     final status = s.drafts[id]?.status ?? slot.translation?.status ?? 'draft';
     final theme = Theme.of(context);
+
+    final entries = [
+      for (final t
+          in ref.watch(glossaryListProvider).value ?? const <GlossaryTermRow>[])
+        GlossaryEntry(
+          sourceTerm: t.sourceTerm,
+          targetTerm: t.targetTerm,
+          mandatory: t.mandatory,
+        ),
+    ];
+    final matches = matchGlossary(slot.sourceText, entries);
+    // Pas de constat sur une chaîne que l'on n'a pas encore commencée.
+    final showLint = dirty || slot.translation != null;
+    final issues = showLint
+        ? lintTranslation(
+            source: slot.sourceText,
+            target: _currentText,
+            glossary: entries,
+          )
+        : const <LintIssue>[];
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -119,6 +156,29 @@ class _SlotEditorPanelState extends ConsumerState<SlotEditorPanel> {
               alignment: Alignment.centerLeft,
               child: TokenizedText(_currentText),
             ),
+            if (matches.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final g in matches)
+                    ActionChip(
+                      key: Key('glossary-${g.sourceTerm}'),
+                      avatar: g.mandatory
+                          ? const Icon(Icons.priority_high, size: 16)
+                          : null,
+                      label: Text('${g.sourceTerm} → ${g.targetTerm}'),
+                      tooltip: 'Insérer « ${g.targetTerm} »',
+                      onPressed: () => _insert(g.targetTerm),
+                    ),
+                ],
+              ),
+            ],
+            if (showLint) ...[
+              const SizedBox(height: 8),
+              LintList(issues: issues),
+            ],
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,

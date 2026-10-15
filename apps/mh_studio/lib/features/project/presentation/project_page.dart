@@ -22,6 +22,11 @@ class ProjectPage extends ConsumerWidget {
         ),
         actions: [
           TextButton(
+            key: const Key('open-glossary'),
+            onPressed: () => context.push(Routes.glossary),
+            child: const Text('Glossaire'),
+          ),
+          TextButton(
             key: const Key('close-project'),
             onPressed: () {
               ref.read(projectPathProvider.notifier).close();

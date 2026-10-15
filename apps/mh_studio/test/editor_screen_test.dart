@@ -10,6 +10,7 @@ import 'package:mh_formats/mh_formats.dart';
 import 'package:mh_studio/app/router.dart';
 import 'package:mh_studio/features/editor/presentation/file_editor_page.dart';
 import 'package:mh_studio/features/files/application/files_providers.dart';
+import 'package:mh_studio/features/glossary/application/glossary_providers.dart';
 import 'package:mh_studio/features/project/application/project_providers.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
@@ -74,15 +75,19 @@ void main() {
   });
   tearDown(() => db.close());
 
-  List<Override> overrides() => [
+  List<Override> overrides({List<GlossaryTermRow> glossary = const []}) => [
+    glossaryListProvider.overrideWith((ref) async => glossary),
     translationRepositoryProvider.overrideWithValue(repo),
     fileBudgetsProvider.overrideWith((ref) async => {17: baseBudget}),
   ];
 
-  Future<void> openEditor(WidgetTester t) async {
+  Future<void> openEditor(
+    WidgetTester t, {
+    List<GlossaryTermRow> glossary = const [],
+  }) async {
     await t.pumpWidget(
       ProviderScope(
-        overrides: overrides(),
+        overrides: overrides(glossary: glossary),
         child: const MaterialApp(home: FileEditorPage(fileId: 17)),
       ),
     );
@@ -294,5 +299,73 @@ void main() {
     await settle(t);
     expect(find.text('Fichier #17'), findsOneWidget);
     expect(find.byKey(const Key('live-gauge')), findsOneWidget);
+  });
+
+  const three = GlossaryTermRow(
+    id: 1,
+    locale: 'fr',
+    sourceTerm: 'trois',
+    targetTerm: 'three',
+    note: null,
+    mandatory: true,
+  );
+
+  testWidgets('glossary terms found in the source can be inserted', (t) async {
+    await openEditor(t, glossary: const [three]);
+    final s = await slots(t);
+    await t.tap(find.byKey(Key('slot-${s[1].sourceId}'))); // 'trois'
+    await t.pump();
+    await settle(t); // le glossaire se charge à l'ouverture du panneau
+    expect(find.byKey(const Key('glossary-trois')), findsOneWidget);
+
+    await t.tap(find.byKey(const Key('glossary-trois')));
+    await settle(t);
+    expect(
+      t
+          .widget<TextField>(find.byKey(const Key('target-field')))
+          .controller!
+          .text,
+      'three',
+    );
+    expect(find.byKey(const Key('dirty-dot')), findsOneWidget);
+    expect(find.byKey(const Key('lint-list')), findsNothing); // terme présent
+  });
+
+  testWidgets('a missing mandatory term is flagged', (t) async {
+    await openEditor(t, glossary: const [three]);
+    final s = await slots(t);
+    await t.tap(find.byKey(Key('slot-${s[1].sourceId}')));
+    await t.pump();
+    await t.enterText(find.byKey(const Key('target-field')), 'trois !');
+    await settle(t);
+    expect(find.byKey(const Key('lint-list')), findsOneWidget);
+    expect(
+      find.textContaining('Terme obligatoire absent : « three »'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a newline mismatch is flagged as an error', (t) async {
+    await openEditor(t);
+    final s = await slots(t);
+    await t.tap(find.byKey(Key('slot-${s[0].sourceId}'))); // 'un\ndeux'
+    await t.pump();
+    await t.enterText(find.byKey(const Key('target-field')), 'one two');
+    await settle(t);
+    expect(
+      find.textContaining('Nombre de sauts de ligne différent'),
+      findsOneWidget,
+    );
+    await t.enterText(find.byKey(const Key('target-field')), 'one\ntwo');
+    await settle(t);
+    expect(find.byKey(const Key('lint-list')), findsNothing);
+  });
+
+  testWidgets('an untouched string shows no lint', (t) async {
+    await openEditor(t, glossary: const [three]);
+    final s = await slots(t);
+    await t.tap(find.byKey(Key('slot-${s[1].sourceId}')));
+    await t.pump();
+    expect(find.byKey(const Key('lint-list')), findsNothing);
   });
 }
