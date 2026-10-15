@@ -7,6 +7,14 @@ import 'package:mh_formats/mh_formats.dart';
 import 'package:mh_iso/mh_iso.dart';
 import 'package:test/test.dart';
 
+bool _same(Uint8List a, Uint8List b) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
 void main() {
   // À valider par l'humain : MHP3_ISO=local/MHP3.iso (tâche T13).
   final real = Platform.environment['MHP3_ISO'];
@@ -42,6 +50,7 @@ void main() {
       final detected = <int>[];
       final mismatch = <int>[];
       final badMeasure = <int>[];
+      final badTokens = <int>[];
       for (final e in index.entries) {
         if (e.slotBytes == 0) continue;
         final raw = readAt(e.offset, e.slotBytes);
@@ -52,6 +61,13 @@ void main() {
         } on FormatError {
           continue;
         }
+        // Un décodage strict réussi ne suffit pas : un binaire commençant par
+        // 4 octets nuls (tablesCount = 0) passe (703 faux positifs, voir
+        // docs/PROGRESS.md). On exige une table non nulle et un slot non vide.
+        final hasText = file.tables.any(
+          (t) => t != null && t.slots.any((s) => s.raw.isNotEmpty),
+        );
+        if (!hasText) continue;
         detected.add(e.id);
         final enc = encodeStringTableA(file, fileId: e.id);
         if (enc.length != plain.length) {
@@ -66,13 +82,25 @@ void main() {
         if (measureStringTableA(file, fileId: e.id) != enc.length) {
           badMeasure.add(e.id);
         }
+        for (final t in file.tables.whereType<StringTable>()) {
+          for (final s in t.slots) {
+            final tokens = tokenizeText(s.raw, fileId: e.id);
+            if (tokensByteLength(tokens) != s.raw.length ||
+                !_same(detokenizeText(tokens), s.raw)) {
+              badTokens.add(e.id);
+              break;
+            }
+          }
+        }
       }
 
       // ignore: avoid_print
       print('string_table_a détectés: ${detected.length} fichiers');
-      expect(detected, isNotEmpty);
+      // Corpus constaté sur l'ISO réelle (explore-data, 2026-10-15).
+      expect(detected, [17, for (var i = 2813; i <= 2819; i++) i]);
       expect(mismatch, isEmpty, reason: 'file ids with failed round-trip');
       expect(badMeasure, isEmpty, reason: 'file ids with measure != length');
+      expect(badTokens, isEmpty, reason: 'file ids with token round-trip loss');
     },
     tags: ['integration', 'slow'],
     skip: real == null ? 'MHP3_ISO absent' : false,

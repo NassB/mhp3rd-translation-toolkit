@@ -105,7 +105,7 @@ Details for contributors and coding agents: [`AGENTS.md`](AGENTS.md).
 | Phase | Scope | State |
 |---|---|---|
 | 0 | `mh_binary`, `mh_iso`, `mh_databin` cipher | Done. Round trip validated on a real ISO |
-| 1 | `string_table_a` codec, mhtools import/export | In progress: decoder and encoder done on fixtures; real-data round trip done; in-memory mhtools text import/export done (fixtures); phase exit awaiting confirmation |
+| 1 | `string_table_a` codec, mhtools import/export | In progress: decoder and encoder done on fixtures; real-data round trip done; in-memory mhtools text import/export done (fixtures); text tokens (text + newline) done; only 8 real text tables exist (IDs 17, 2813–2819); phase exit validated |
 | 2 | Translation DB, CLI, byte budget, ISO build | Planned |
 | 3 | Studio app | Planned |
 | 4 | Font, pixel/line budget, PPSSPP tests | Planned |

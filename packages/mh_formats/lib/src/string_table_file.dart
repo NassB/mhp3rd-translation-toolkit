@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
+import 'text_token.dart';
+
 /// Une chaîne d'une table (octets bruts, sans le `\0` final).
-///
-/// Les jetons (texte + codes de contrôle) sont reportés à T14.
 final class StringSlot {
   /// Voir les champs.
   StringSlot({required this.index, required Uint8List raw, this.aliasOf})
@@ -16,6 +16,9 @@ final class StringSlot {
 
   /// Index du premier slot partageant le même offset, sinon `null`.
   final int? aliasOf;
+
+  /// Jetons de [raw] ; lève `FormatError` si [raw] n'est pas de l'UTF-8.
+  List<Token> get tokens => tokenizeText(raw);
 }
 
 /// Une table de chaînes (`stringOffsets` + chaînes).

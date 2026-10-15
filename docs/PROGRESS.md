@@ -31,7 +31,23 @@ Critère de sortie : round-trip bit à bit de toutes les tables détectées (tes
 - [x] **T13 Test `integration` round-trip** [réel] — `packages/mh_formats/test/string_table_a_roundtrip_integration_test.dart` : scanne tout `DATA.BIN`, détection = décodage strict réussi, vérifie `encode(decode(x)) == x` et `measure == length`. Lancé sur l'ISO réelle (lecture seule) : ~650 fichiers détectés (ID 17, 1871–2819, 4192–4590, 5486–5653), 0 échec. Critère de sortie phase 1 à confirmer par l'humain. Dép. dev `mh_iso` ajoutée à `mh_formats`. Reste : commit (humain).
 - [x] **T14 Import/export mhtools** [fixtures] — `exportMhtoolsDump`/`importMhtoolsDump` (`mhtools_dump.dart`, `mhtools_text.dart`, en-tête GPLv3+) : dossier en mémoire (`filelist` + `.txt` + `enddata`), import appliqué sur le modèle d'origine (offsets/alias conservés). Tests `mhtools_dump_test.dart`. `scripts/check.sh packages/mh_formats` = OK. Pas d'E/S disque (CLI en phase 2). Reste : commit (humain) ; critère de sortie phase 1 à confirmer par l'humain (T13).
 
-- ~650 `string_table_a` trouvés par scan complet (T13) ; `endData` de l'ID 17 (1 043 octets) toujours non identifié. À consigner dans `docs/FORMATS/string_table_a.md` (liste des plages d'IDs).
+- **Correction (2026-10-15)** : le scan T13 ne comptait pas ~650 tables mais 711 fichiers dont **703 faux positifs** (`tablesCount = 0`, binaires acceptés à tort). Seuls 8 vrais `string_table_a` : IDs 17 et 2813–2819. Le critère de sortie phase 1 repose donc sur 8 fichiers ; détection à durcir (voir questions ouvertes). `endData` de l ID 17 (1 043 octets) toujours non identifié.
+
+## Phase 2 — Base locale, budget, build ISO (tâches)
+
+Critère de sortie : ISO patché avec quelques chaînes modifiées, qui démarre (test en jeu par l'humain).
+Découpage fait le 2026-10-15 depuis ARCHITECTURE §7, §8.1–8.3, §9, §5.3. Aucune tâche commencée.
+
+- [x] **T15 Tokens texte + newline** [réel] — `text_token.dart` (`Token` sealed : `TextToken`, `NewlineToken`; `tokenizeText`/`detokenizeText`/`tokensByteLength`, `StringSlot.tokens`) ; aucun code de contrôle (0 dans les données réelles, pas de `control_codes.yaml`), `
+` seul est un jeton. Tests `text_token_test.dart` + round-trip des jetons et longueur exacte sur les 8 fichiers réels (`--integration` OK). Reste : commit (humain). T17/T19 n'ont plus T15 comme prérequis bloquant.
+- [ ] **T16 `mh_budget` niveaux 1 et 2** [fixtures] — `BudgetError`, `taille_alignée ≤ slotBytes`, politiques `strict`/`slot` (`config/validated_files.yaml`), mesure incrémentale §8.3 (s'appuie sur `measureStringTableA`). Peut précéder T15 en octets bruts.
+- [ ] **T17 `PatchFile` (écriture/lecture)** [fixtures] — `MHP3RD_DATA.BIN` : `u32 count`, `count × (u32 offset, u32 length)`, pad 16, données ; blocs alignés secteur, multiples de 1024 (ARCHITECTURE §5.3, `patch-iso.py` via `/ref-lookup`).
+- [ ] **T18 `applyPatch` sur copie d'ISO** [fixtures] — §9.3 : `cloneTo` + écriture en place à `databin_offset + offset`, vérifs offset/`slotBytes`/MD5 (§4.3). Test sur ISO synthétique.
+- [ ] **T19 `mh_tdb` schéma drift/SQLite** [fixtures] — §7.2 (`game_file`, `source_string`, `translation`, `build`…). **Nouvelle dépendance `drift` + `build_runner` : à proposer (licence, justification) avant ajout.**
+- [ ] **T20 Import dump mhtools → base** [fixtures] — alimente `source_string`/`translation` depuis `importMhtoolsDump`/`exportMhtoolsDump` (T14) ; `source_hash` SHA-1, alias.
+- [ ] **T21 `mh_build` pipeline** [fixtures] — §9.1 étapes Verify→Verify : sélection, encode, budget, chiffrement au LBA d'origine, patch, rapport ; cache par fichier (peut être reporté).
+- [ ] **T22 CLI `mhtk`** [fixtures] — sous-commandes `import`, `status`, `budget`, `build --target iso|plugin` (§11 « Commandes CLI », à relire).
+- [ ] **T23 Build réel minimal** [réel] — quelques chaînes modifiées → ISO copie dans `out/` → vérif ré-extraction (étape 10) ; démarrage en jeu (PPSSPP) par l'humain.
 
 ## Fait
 
@@ -39,6 +55,8 @@ Critère de sortie : round-trip bit à bit de toutes les tables détectées (tes
 
 ## Questions ouvertes
 
+- **T15 / codes de contrôle** (2026-10-15) : sur 711 `string_table_a` détectés (15 051 slots, `local/explore/text_content.txt`), 100 % UTF-8 valide, **0 octet de contrôle** hors `\n`, 0 PUA, 0 alias, 0 littéral `<NEWLINE>`/`<EMPTY STRING>`. `config/control_codes.yaml` n'existe pas et rien ne justifie d'en inventer un. Tokens = `\n` seulement ? À trancher ; périmètre de T15 à redéfinir avant de coder.
+- **Faux positifs de détection : confirmés et corrigés** [réel] (explore-data, `local/explore/ascii_files.txt`) : les 703 fichiers hors IDs 17 et 2813–2819 ont `tablesCount = 0` (binaires de 2 Ko à 1,5 Mo). Critère proposé : `count >= 1`, au moins une table non nulle et un slot non vide. Détecteur du test T13 durci (table non nulle + slot non vide) ; `scripts/check.sh packages/mh_formats --integration` OK sur l ISO réelle : détectés = [17, 2813–2819], round-trip et `measure` OK. Le décodeur reste inchangé (accepte toujours tablesCount = 0).
 - Licence globale GPLv3+ validée par l'humain (T6). `MHP3_ISO` et `local/MHP3.iso` encore absents.
 - `apps/mh_studio` : créé par `pwsh scripts/setup_studio.ps1` (FVM). Les deps Flutter (Riverpod, etc.) seront proposées avant ajout. `apps/mh_patcher` et `server/mh_server` restent à créer à leur phase.
 - `scripts/check.sh` appelle `dart`/`flutter` : les lancer avec `.fvm/flutter_sdk/bin` dans le PATH (le Dart de FVM sert pour tout le workspace).

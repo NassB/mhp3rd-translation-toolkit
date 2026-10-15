@@ -7,6 +7,7 @@ export 'src/mhtools_text.dart'
 export 'src/string_table_a_decoder.dart';
 export 'src/string_table_a_encoder.dart';
 export 'src/string_table_file.dart';
+export 'src/text_token.dart';
 
 /// Nom du paquet (test de fumée).
 const String mhFormatsPackageName = 'mh_formats';
