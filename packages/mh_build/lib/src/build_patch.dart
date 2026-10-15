@@ -72,7 +72,7 @@ Future<BuildResult> buildPatch({
       ? all
       : [
           for (final t in all)
-            if (onlyFileIds.contains(t.fileId)) t
+            if (onlyFileIds.contains(t.fileId)) t,
         ];
   final byFile = <int, List<BuildTranslation>>{};
   for (final t in translations) {

@@ -21,7 +21,8 @@ Future<void> main(List<String> a) async {
       if (t == null) continue;
       if (j == 0) {
         final lines = t.split('\n');
-        final k = lines.indexWhere((l) => l.length > 4 && l != '<EMPTY STRING>');
+        final k =
+            lines.indexWhere((l) => l.length > 4 && l != '<EMPTY STRING>');
         lines[k] = lines[k].substring(0, lines[k].length ~/ 2);
         t = lines.join('\n');
       }
