@@ -4,6 +4,7 @@ import 'package:mh_binary/mh_binary.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
 import '../application/glossary_providers.dart';
+import 'suggest_terms_dialog.dart';
 
 /// Glossaire : terminologie du projet (termes obligatoires signalés par le
 /// linter de l'éditeur).
@@ -14,7 +15,20 @@ class GlossaryPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final terms = ref.watch(glossaryListProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Glossaire')),
+      appBar: AppBar(
+        title: const Text('Glossaire'),
+        actions: [
+          IconButton(
+            key: const Key('suggest-terms'),
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: 'Suggérer des termes',
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) => const SuggestTermsDialog(),
+            ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         key: const Key('add-term'),
         onPressed: () => showDialog<void>(
