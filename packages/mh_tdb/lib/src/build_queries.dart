@@ -69,3 +69,34 @@ Future<List<BuildTranslation>> eligibleTranslations(
       ),
   ];
 }
+
+/// Instantané de révision de la base (docs/ARCHITECTURE.md §9.1, étape 2) :
+/// somme des `revision` de toutes les lignes `translation` (croît à chaque
+/// ajout ou modification ; 0 si la base est vide).
+Future<int> tdbRevision(TdbDatabase db) async {
+  final sum = db.translations.revision.sum();
+  final row =
+      await (db.selectOnly(db.translations)..addColumns([sum])).getSingle();
+  return row.read(sum) ?? 0;
+}
+
+/// Insère une ligne `build` et retourne son id.
+Future<int> recordBuild(
+  TdbDatabase db, {
+  required String isoMd5,
+  required int tdbRevision,
+  required String toolkitVersion,
+  required String profile,
+  required String status,
+  required String reportJson,
+}) =>
+    db.into(db.builds).insert(
+          BuildsCompanion.insert(
+            isoMd5: isoMd5,
+            tdbRevision: tdbRevision,
+            toolkitVersion: toolkitVersion,
+            profile: profile,
+            status: status,
+            reportJson: Value(reportJson),
+          ),
+        );

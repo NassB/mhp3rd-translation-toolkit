@@ -25,8 +25,12 @@ typedef PlainSlotReader = Uint8List Function(DataBinEntry entry);
 /// Résultat de [buildPatch].
 final class BuildResult {
   /// Voir les champs.
-  BuildResult({required this.patch, required List<BudgetReport> reports})
-      : reports = List.unmodifiable(reports);
+  BuildResult({
+    required this.patch,
+    required List<BudgetReport> reports,
+    required List<BuildTranslation> applied,
+  })  : reports = List.unmodifiable(reports),
+        applied = List.unmodifiable(applied);
 
   /// Patch prêt à appliquer ; `null` si un budget est dépassé ou s'il n'y a
   /// rien à patcher.
@@ -34,6 +38,9 @@ final class BuildResult {
 
   /// Un rapport par fichier sélectionné, par ID croissant.
   final List<BudgetReport> reports;
+
+  /// Traductions éligibles prises en compte (pour la vérification).
+  final List<BuildTranslation> applied;
 
   /// Vrai si tous les budgets sont respectés.
   bool get ok => reports.every((r) => r.isOk);
@@ -101,10 +108,10 @@ Future<BuildResult> buildPatch({
   }
 
   if (reports.isEmpty || !reports.every((r) => r.isOk)) {
-    return BuildResult(patch: null, reports: reports);
+    return BuildResult(patch: null, reports: reports, applied: translations);
   }
   final patch = PatchFile(blocks)..validate(index);
-  return BuildResult(patch: patch, reports: reports);
+  return BuildResult(patch: patch, reports: reports, applied: translations);
 }
 
 StringTableFile _applyTranslations(

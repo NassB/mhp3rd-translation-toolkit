@@ -9,6 +9,7 @@ dependencies:
   crypto: ^3.0.7
   mh_binary: any
   mh_budget: any
+  mh_iso: any
   mh_formats: any
   mh_tdb: any
   mh_databin: any
