@@ -55,3 +55,8 @@ Future<TdbStatus> tdbStatus(TdbDatabase db, {required String locale}) async {
     translationsByStatus: byStatus,
   );
 }
+
+/// Ligne `game_file` de [fileId], ou `null` si le fichier n'est pas importé.
+Future<GameFileRow?> gameFileById(TdbDatabase db, int fileId) =>
+    (db.select(db.gameFiles)..where((t) => t.id.equals(fileId)))
+        .getSingleOrNull();

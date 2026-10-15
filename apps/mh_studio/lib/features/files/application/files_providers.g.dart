@@ -254,7 +254,7 @@ final class BudgetPatchesProvider
   }
 }
 
-String _$budgetPatchesHash() => r'4fbe337a1b4e913a23599ad25f0a01ad61ee65d9';
+String _$budgetPatchesHash() => r'87228dbc426ba8183836cfe9fbc124f22429cfb0';
 
 /// Budgets mis à jour par l'éditeur après un enregistrement : la liste des
 /// fichiers les préfère au calcul initial (obsolète jusqu'au prochain calcul).

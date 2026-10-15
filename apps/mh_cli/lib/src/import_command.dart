@@ -1,10 +1,7 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:mh_binary/mh_binary.dart';
 import 'package:mh_build/mh_build.dart';
-import 'package:mh_formats/mh_formats.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
 const String _usage = 'usage: mhtk import --project <dir> --from <dump dir> '
@@ -15,8 +12,8 @@ const String _usage = 'usage: mhtk import --project <dir> --from <dump dir> '
 /// `string_table_<j>.txt`, `enddata.bin`) au fichier d'ID `--file`.
 ///
 /// Un dossier = un fichier : la disposition multi-fichiers des dumps mhtools
-/// n'est pas documentée. L'original est relu dans l'ISO du projet. Retourne
-/// le code de sortie.
+/// n'est pas documentée. L'original est relu dans l'ISO du projet (un seul
+/// slot, voir `importDumpFolder`). Retourne le code de sortie.
 Future<int> runImport(List<String> args, StringSink out, StringSink err) async {
   String? dir;
   String? from;
@@ -48,24 +45,22 @@ Future<int> runImport(List<String> args, StringSink out, StringSink err) async {
     return 64;
   }
 
-  IsoSession? session;
   TdbDatabase? db;
   try {
-    final project = Project.load(dir);
-    session = await IsoSession.open(project.isoPath, config);
-    final entry = session.index.byId(fileId);
-    final original = decodeStringTableA(
-      session.readPlain(entry),
-      fileId: fileId,
+    final loaded = Project.load(dir);
+    final project = Project(
+      dir: loaded.dir,
+      isoPath: loaded.isoPath,
+      versionId: loaded.versionId,
+      locale: locale ?? loaded.locale,
     );
-    final dump = _readDump(from, original.tables.length);
     db = TdbDatabase.openFile(project.dbPath);
-    final n = await importMhtoolsTranslations(
-      db,
+    final n = await importDumpFolder(
+      db: db,
+      project: project,
+      config: config,
       fileId: fileId,
-      original: original,
-      dump: dump,
-      locale: locale ?? project.locale,
+      folder: from,
       status: status,
     );
     out.writeln('file $fileId: $n translations created or updated');
@@ -81,27 +76,5 @@ Future<int> runImport(List<String> args, StringSink out, StringSink err) async {
     return 1;
   } finally {
     await db?.close();
-    session?.close();
   }
-}
-
-/// Lit un dossier de dump mhtools pour un fichier de [tableCount] tables.
-/// Une table sans `string_table_<j>.txt` est une table nulle.
-MhtoolsDump _readDump(String from, int tableCount) {
-  if (!Directory(from).existsSync()) {
-    throw FileSystemException('dump folder not found', from);
-  }
-  String? read(String name) {
-    final f = File('$from/$name');
-    return f.existsSync() ? utf8.decode(f.readAsBytesSync()) : null;
-  }
-
-  final endData = File('$from/enddata.bin');
-  return MhtoolsDump(
-    fileListText: read('filelist.txt') ?? '',
-    tableTexts: [
-      for (var j = 0; j < tableCount; j++) read(mhtoolsTableFileName(j)),
-    ],
-    endData: endData.existsSync() ? endData.readAsBytesSync() : Uint8List(0),
-  );
 }

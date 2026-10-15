@@ -86,7 +86,7 @@ Future<BuildResult> buildPatch({
     final entry = index.byId(fileId);
     final plain = readPlain(entry);
     final model = decodeStringTableA(plain, fileId: fileId);
-    final rebuilt = _applyTranslations(model, byFile[fileId]!, fileId);
+    final rebuilt = applyTranslations(model, byFile[fileId]!, fileId);
 
     final tables = encodeStringTableA(rebuilt, fileId: fileId);
     final rebuiltBytes = tables.length + model.endData.length;
@@ -122,11 +122,16 @@ Future<BuildResult> buildPatch({
   return BuildResult(patch: patch, reports: reports, applied: translations);
 }
 
-StringTableFile _applyTranslations(
+/// Remplace par les traductions [translations] les chaînes de [model] (alias
+/// recopiés de leur cible). Le SHA-1 de chaque source est vérifié : une base
+/// périmée lève [TdbError]. [keepEndData] conserve la zone de fin d'origine
+/// (export) ; sinon elle est vide (le build la replace lui-même).
+StringTableFile applyTranslations(
   StringTableFile model,
   List<BuildTranslation> translations,
-  int fileId,
-) {
+  int fileId, {
+  bool keepEndData = false,
+}) {
   TdbError fail(String msg) => TdbError(msg, fileId: fileId);
   final byPos = <(int, int), BuildTranslation>{};
   for (final t in translations) {
@@ -174,6 +179,6 @@ StringTableFile _applyTranslations(
   return StringTableFile(
     unknownHeader: model.unknownHeader,
     tables: tables,
-    endData: Uint8List(0),
+    endData: keepEndData ? model.endData : Uint8List(0),
   );
 }

@@ -434,4 +434,17 @@ void main() {
     await settle(t);
     expect(find.text('Mémoire de traduction'), findsNothing);
   });
+
+  testWidgets('the editor offers import and export dialogs', (t) async {
+    await openEditor(t);
+    await t.tap(find.byKey(const Key('import-dump')));
+    await t.pumpAndSettle();
+    expect(find.text('Importer un dump mhtools'), findsOneWidget);
+    await t.tap(find.byKey(const Key('dump-close')));
+    await t.pumpAndSettle();
+
+    await t.tap(find.byKey(const Key('export-dump')));
+    await t.pumpAndSettle();
+    expect(find.text('Exporter au format mhtools'), findsOneWidget);
+  });
 }

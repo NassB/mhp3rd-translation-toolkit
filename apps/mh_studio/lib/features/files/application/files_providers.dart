@@ -54,4 +54,8 @@ class BudgetPatches extends _$BudgetPatches {
   }
 
   void put(FileBudget budget) => state = {...state, budget.fileId: budget};
+
+  /// Oublie le budget mis à jour de [fileId] (son état enregistré a changé
+  /// hors de l'éditeur : import).
+  void remove(int fileId) => state = {...state}..remove(fileId);
 }

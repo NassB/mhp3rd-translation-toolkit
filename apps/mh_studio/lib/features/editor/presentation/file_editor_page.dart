@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
+import '../../dump/presentation/dump_dialog.dart';
 import '../../files/presentation/budget_gauge.dart';
 import '../application/file_editor.dart';
 import '../application/file_editor_state.dart';
@@ -25,7 +26,31 @@ class _FileEditorPageState extends ConsumerState<FileEditorPage> {
   Widget build(BuildContext context) {
     final editor = ref.watch(fileEditorProvider(widget.fileId));
     return Scaffold(
-      appBar: AppBar(title: Text('Fichier #${widget.fileId}')),
+      appBar: AppBar(
+        title: Text('Fichier #${widget.fileId}'),
+        actions: [
+          IconButton(
+            key: const Key('import-dump'),
+            icon: const Icon(Icons.file_download),
+            tooltip: 'Importer un dump mhtools',
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) =>
+                  DumpDialog(mode: DumpMode.import, fileId: widget.fileId),
+            ),
+          ),
+          IconButton(
+            key: const Key('export-dump'),
+            icon: const Icon(Icons.file_upload),
+            tooltip: 'Exporter au format mhtools',
+            onPressed: () => showDialog<void>(
+              context: context,
+              builder: (_) =>
+                  DumpDialog(mode: DumpMode.export, fileId: widget.fileId),
+            ),
+          ),
+        ],
+      ),
       body: editor.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Erreur : $e')),
