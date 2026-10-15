@@ -60,3 +60,8 @@ Voir `docs/DECISIONS/`.
 - `packages/mh_databin` `-t integration` : OK (round-trip `encrypt(decrypt(x, lba), lba) == x` sur tous les fichiers chiffrés).
 - Correction découverte sur données réelles : la TOC contient des entrées égales (slots vides, `slotBytes = 0`). Contrainte « strictement croissant » (non sourcée) remplacée par « non décroissant » + test synthétique.
 - **Critère de sortie phase 0 : validé.** Reste : commit (humain), exécuter `mhtk index --iso local/MHP3.iso` (T9).
+
+## Validation phase 1 sur données réelles (2026-10-15) [réel]
+
+- `scripts/check.sh packages/mh_formats --integration` lancé par l'humain sur l'ISO réelle : OK (round-trip bit à bit de tous les `string_table_a` détectés, ~650 fichiers).
+- **Critère de sortie phase 1 : validé.** Reste : commit (humain). Phase 2 : tâches à découper (ARCHITECTURE.md §12).
