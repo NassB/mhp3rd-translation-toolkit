@@ -17,15 +17,6 @@ to the endpoint, which must be local unless --allow-remote is given. No game
 text is ever printed. Environment: MHTK_LLM_ENDPOINT (default endpoint),
 MHTK_LLM_API_KEY (optional bearer key).''';
 
-const Map<String, String> _languages = {
-  'fr': 'français',
-  'en': 'anglais',
-  'es': 'espagnol',
-  'de': 'allemand',
-  'it': 'italien',
-  'pt': 'portugais',
-};
-
 /// Crée le client de chat ; remplaçable dans les tests.
 typedef ChatClientFactory = ChatClient Function(Uri endpoint, String? apiKey);
 
@@ -129,7 +120,7 @@ Future<int> runPretranslate(
       includeDrafts: flags.contains('include-drafts'),
       limit: limit,
       prompt: PromptOptions(
-        targetLanguage: _languages[project.locale] ?? project.locale,
+        targetLanguage: languageNameOf(project.locale),
       ),
     );
 

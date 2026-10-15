@@ -143,3 +143,16 @@ List<ChatMessage> buildMessages(
     ChatMessage.user(jsonEncode(payload)),
   ];
 }
+
+/// Nom français de la langue de [locale] (`fr` → « français ») pour la
+/// consigne ; un code inconnu est repris tel quel.
+String languageNameOf(String locale) =>
+    const {
+      'fr': 'français',
+      'en': 'anglais',
+      'es': 'espagnol',
+      'de': 'allemand',
+      'it': 'italien',
+      'pt': 'portugais',
+    }[locale] ??
+    locale;

@@ -590,4 +590,30 @@ void main() {
     expect(messages[0].content, contains('budget d\'octets total'));
     expect(messages[0].content, contains('comparable'));
   });
+
+  test('onlySourceIds restricts the run; drafts need includeDrafts', () async {
+    final client = ScriptedClient((r, _) => answer(r, dict));
+    final report = await run(
+      client,
+      options: PreTranslateOptions(onlySourceIds: {idOf[pen]!, idOf[water]!}),
+    );
+    // water est un brouillon : exclu sans includeDrafts ; pen est retenue.
+    expect(report.candidates, 1);
+    expect(client.requests.single.ids, [idOf[pen]]);
+    final s = await stored();
+    expect(s[pen]!.text, "C'est un stylo.");
+    expect(s[hello], isNull); // le reste du fichier n'est pas touché
+    expect(s[water]!.text, 'Eau (brouillon)');
+
+    final again = ScriptedClient((r, _) => answer(r, dict));
+    final withDraft = await run(
+      again,
+      options: PreTranslateOptions(
+        onlySourceIds: {idOf[water]!},
+        includeDrafts: true,
+      ),
+    );
+    expect(withDraft.candidates, 1);
+    expect((await stored())[water]!.text, "De l'eau.");
+  });
 }

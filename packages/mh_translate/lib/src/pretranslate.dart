@@ -98,6 +98,7 @@ final class PreTranslateOptions {
     this.enforceFileBudget = true,
     this.shortenFloorBytes = 16,
     this.limit,
+    this.onlySourceIds,
     this.temperature = 0.2,
     this.prompt = const PromptOptions(),
   });
@@ -123,6 +124,10 @@ final class PreTranslateOptions {
   /// Nombre maximal de chaînes traitées (les premières du fichier) ; `null` :
   /// toutes.
   final int? limit;
+
+  /// Restreint la sélection à ces chaînes (identifiants `source_string`) ; `null` :
+  /// tout le fichier. Les règles de sélection restent celles de [includeDrafts].
+  final Set<int>? onlySourceIds;
 
   /// Limite d'octets d'une chaîne : `max(minMaxBytes, octets(source) ×
   /// perStringFactor)`. Large à dessein : le vrai garde-fou est l'enveloppe du
@@ -627,6 +632,10 @@ _Selection _select(List<SlotView> slots, PreTranslateOptions options) {
     final s = slots[i];
     indexById[s.sourceId] = i;
     if (s.isAlias) continue;
+    if (options.onlySourceIds != null &&
+        !options.onlySourceIds!.contains(s.sourceId)) {
+      continue;
+    }
     if (options.limit != null && units.length >= options.limit!) continue;
     final t = s.translation;
     final todo = t == null ||

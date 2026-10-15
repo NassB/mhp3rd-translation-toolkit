@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
+import '../../ai/presentation/pretranslate_dialog.dart';
 import '../../dump/presentation/dump_dialog.dart';
 import '../../files/presentation/budget_gauge.dart';
 import '../application/file_editor.dart';
@@ -29,6 +30,25 @@ class _FileEditorPageState extends ConsumerState<FileEditorPage> {
       appBar: AppBar(
         title: Text('Fichier #${widget.fileId}'),
         actions: [
+          IconButton(
+            key: const Key('pretranslate'),
+            icon: const Icon(Icons.auto_awesome),
+            tooltip: 'Pré-traduire avec un modèle de langage',
+            onPressed: () {
+              final slots = editor.value?.slots ?? const [];
+              final sel = slots.where((s) => s.sourceId == _selected);
+              showDialog<void>(
+                context: context,
+                barrierDismissible: false,
+                builder: (_) => PreTranslateDialog(
+                  fileId: widget.fileId,
+                  selectedSourceId: sel.isNotEmpty && !sel.first.isAlias
+                      ? _selected
+                      : null,
+                ),
+              );
+            },
+          ),
           IconButton(
             key: const Key('import-dump'),
             icon: const Icon(Icons.file_download),
@@ -152,6 +172,8 @@ class _SlotList extends StatelessWidget {
   String _subtitle(SlotView s) {
     final where = '${s.tableIdx}.${s.slotIdx}';
     if (s.isAlias) return '$where · alias du slot ${s.aliasOfSlot}';
-    return '$where · ${s.translation?.status ?? 'untranslated'}';
+    final t = s.translation;
+    final ai = (t?.authorId ?? '').startsWith('ai:') ? ' · IA' : '';
+    return '$where · ${t?.status ?? 'untranslated'}$ai';
   }
 }
