@@ -12,3 +12,4 @@ workspace:
   - packages/mh_tdb
   - packages/mh_build
   - apps/mh_cli
+  - apps/mh_studio

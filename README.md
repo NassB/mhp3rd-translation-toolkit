@@ -60,7 +60,7 @@ The core packages (`mh_binary`, `mh_iso`, `mh_databin`, `mh_formats`, `mh_budget
 
 ## Getting started
 
-Requirements: Dart >= 3.6 (the repo was set up with Dart 3.9). Flutter via FVM is only needed for the future studio app (`pwsh scripts/setup_studio.ps1`).
+Requirements: Dart >= 3.6 for the core packages and the CLI. The studio app (`apps/mh_studio`) needs Flutter via FVM (`.fvmrc`, Flutter stable 3.47.6 / Dart 3.13.5; put `~/fvm/versions/stable/bin` in your PATH) and, to run it on Windows, Visual Studio with the "Desktop development with C++" workload. See `docs/DECISIONS/0005-flutter-et-dependances-studio.md`.
 
 ```bash
 dart pub get                      # resolves the pub workspace from the repo root

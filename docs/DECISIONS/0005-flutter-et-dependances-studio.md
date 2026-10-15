@@ -1,0 +1,18 @@
+# 0005 — Flutter (FVM) et dépendances de `mh_studio`
+
+## Contexte
+Phase 3 : application Flutter desktop (`apps/mh_studio`). Dépendances validées par l'humain le 2026-10-15.
+
+## Décision
+- SDK : Flutter stable **3.47.6** (Dart **3.13.5**) installé par `fvm` 4.3.1 (cache `~/fvm/versions/stable`), épinglé par `.fvmrc` (`"flutter": "stable"`). Le workspace entier se résout désormais avec ce Dart ; `scripts/check.sh` du dépôt entier reste `OK`.
+- `apps/mh_studio` créé avec `flutter create` (plateformes windows, linux, macos), intégré au workspace (`resolution: workspace`). `cupertino_icons` et `flutter_lints` retirés (non approuvé / `lints ^6` en conflit avec `lints ^5` du workspace) ; les règles viennent de l'`analysis_options.yaml` racine.
+- Dépendances ajoutées : `flutter_riverpod` 3.4.3 (MIT), `go_router` 18.1.0 (BSD-3-Clause) — licences lues sur pub.dev.
+- Non ajoutés : `sqlite3_flutter_libs` (EOL), `drift_flutter` (inutile : `mh_tdb` ouvre SQLite via `sqlite3`), `file_picker` (T33).
+- Générateur Riverpod : dry-run fait (`riverpod_annotation` 4.0.2 + `riverpod_generator` 4.0.3 résolvent, mais font descendre `analyzer` 10.2 → 9.0, `flutter_riverpod` 3.3.1, et ajoutent `mockito`, `code_builder`, `freezed_annotation`) ; décision en attente.
+
+## Environnement
+- `scripts/setup_studio.ps1` échoue sous Windows PowerShell 5.1 (`fvm` écrit un avertissement sur stderr, converti en erreur par `$ErrorActionPreference = 'Stop'`) et `pwsh` est absent : les étapes 2-3 ont été faites à la main. `.fvm/flutter_sdk` (lien symbolique) n'existe pas sous Windows ici : mettre `~/fvm/versions/stable/bin` dans le PATH.
+- **Visual Studio (charge « Desktop development with C++ ») n'est pas installé** : `flutter run -d windows` / `flutter build windows` sont impossibles tant que l'humain ne l'installe pas. `flutter test` et `flutter analyze` fonctionnent.
+
+## Alternatives
+Voir 0004 pour le même raisonnement sur SQLite. Providers Riverpod écrits à la main (sans générateur) si le générateur est refusé.
