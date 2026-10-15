@@ -1,0 +1,469 @@
+// Moteur de pré-traduction d'un fichier (docs/DECISIONS/0006-pretraduction-ia.md).
+//
+// Règles : résultats **toujours en `draft`**, jamais d'écrasement d'une
+// traduction `translated`/`reviewed`/`locked` ; chaque résultat est contrôlé
+// (linter, termes obligatoires, octets) avec **un seul** nouvel essai ; une
+// chaîne en échec est laissée intacte. Le rapport ne contient aucun texte du
+// jeu : seulement des identifiants, des compteurs et des raisons.
+
+import 'dart:convert';
+
+import 'package:mh_formats/mh_formats.dart';
+import 'package:mh_tdb/mh_tdb.dart';
+
+import 'batching.dart';
+import 'chat_client.dart';
+import 'prompt.dart';
+import 'response_parser.dart';
+
+/// Jeton d'annulation coopérative (vérifié entre deux lots).
+final class CancelToken {
+  bool _cancelled = false;
+
+  bool get isCancelled => _cancelled;
+
+  void cancel() => _cancelled = true;
+}
+
+/// Pourquoi une traduction proposée a été refusée.
+enum FailureReason {
+  /// Absente (ou vide) dans la réponse du modèle.
+  missing,
+
+  /// Nombre de sauts de ligne différent de la source.
+  newlineCount,
+
+  /// Contient un octet NUL.
+  nulChar,
+
+  /// Terme obligatoire du glossaire absent.
+  mandatoryTerm,
+
+  /// Dépasse la limite d'octets de la chaîne.
+  overBudget,
+}
+
+/// Une chaîne laissée intacte.
+final class FailedUnit {
+  /// Voir les champs.
+  FailedUnit(this.sourceId, Set<FailureReason> reasons)
+      : reasons = Set.unmodifiable(reasons);
+
+  final int sourceId;
+  final Set<FailureReason> reasons;
+}
+
+/// Avancement après chaque lot.
+final class PreTranslateProgress {
+  /// Voir les champs.
+  const PreTranslateProgress({
+    required this.processed,
+    required this.total,
+    required this.saved,
+    required this.failed,
+  });
+
+  /// Chaînes déjà traitées (enregistrées, en échec ou en conflit).
+  final int processed;
+
+  /// Chaînes à traiter au total.
+  final int total;
+  final int saved;
+  final int failed;
+}
+
+/// Réglages de [preTranslateFile].
+final class PreTranslateOptions {
+  /// Voir les champs.
+  const PreTranslateOptions({
+    this.includeDrafts = false,
+    this.maxUnits = 40,
+    this.maxBatchTokens = 3000,
+    this.fixedPromptTokens = 350,
+    this.tokensPerEstimate = 1.0,
+    this.contextSize = 3,
+    this.contextChars = 160,
+    this.minMaxBytes = 12,
+    this.temperature = 0.2,
+    this.prompt = const PromptOptions(),
+  });
+
+  /// Retraduire aussi les chaînes déjà en `draft` (jamais `translated` ou
+  /// plus).
+  final bool includeDrafts;
+
+  /// Plafonds d'un lot (voir `buildBatches`).
+  final int maxUnits;
+  final int maxBatchTokens;
+
+  /// Jetons fixes du prompt (consigne, schéma) retirés du plafond d'un lot :
+  /// mesurés à ≈ 300 sur LM Studio.
+  final int fixedPromptTokens;
+  final double tokensPerEstimate;
+
+  /// Nombre de chaînes voisines envoyées avant et après un lot, et longueur
+  /// maximale de chacune.
+  final int contextSize;
+  final int contextChars;
+
+  /// Limite d'octets minimale d'une chaîne (une source de 3 octets ne peut pas
+  /// se traduire en 3 octets).
+  final int minMaxBytes;
+  final double temperature;
+  final PromptOptions prompt;
+}
+
+/// Résultat d'une exécution. Aucun texte du jeu.
+final class PreTranslateReport {
+  /// Voir les champs.
+  PreTranslateReport({
+    required this.candidates,
+    required this.saved,
+    required List<FailedUnit> failed,
+    required this.conflicts,
+    required this.skippedNoJapanese,
+    required this.skippedEmpty,
+    required this.warnings,
+    required this.batches,
+    required this.promptTokens,
+    required this.completionTokens,
+    required this.cancelled,
+    required this.stoppedBy,
+    required this.unprocessed,
+  }) : failed = List.unmodifiable(failed);
+
+  /// Chaînes retenues pour la traduction.
+  final int candidates;
+  final int saved;
+  final List<FailedUnit> failed;
+
+  /// Enregistrements refusés car la ligne avait changé entre-temps.
+  final int conflicts;
+
+  /// Chaînes sans japonais (laissées telles quelles) et chaînes vides.
+  final int skippedNoJapanese;
+  final int skippedEmpty;
+
+  /// Constats non bloquants acceptés (espaces de bord, terme suggéré).
+  final int warnings;
+  final int batches;
+  final int promptTokens;
+  final int completionTokens;
+  final bool cancelled;
+
+  /// Erreur du fournisseur qui a arrêté l'exécution (serveur absent…).
+  final TranslateError? stoppedBy;
+
+  /// Chaînes retenues mais non traitées (annulation ou arrêt).
+  final int unprocessed;
+
+  /// Vrai si tout ce qui était retenu a été traité sans échec.
+  bool get clean =>
+      !cancelled &&
+      stoppedBy == null &&
+      failed.isEmpty &&
+      conflicts == 0 &&
+      unprocessed == 0;
+}
+
+final _japanese = RegExp(r'[぀-ヿ㐀-鿿]');
+
+int _bytes(String s) => utf8.encode(s).length;
+
+/// Retire les espaces de bord que la source n'a pas.
+String _normalize(String source, String text) {
+  var t = text;
+  if (!RegExp(r'^\s').hasMatch(source)) t = t.trimLeft();
+  if (!RegExp(r'\s$').hasMatch(source)) t = t.trimRight();
+  return t;
+}
+
+class _Check {
+  _Check(this.reasons, this.hints, this.warnings);
+
+  final Set<FailureReason> reasons;
+  final List<String> hints;
+  final int warnings;
+}
+
+_Check _validate(
+  String source,
+  String text,
+  int maxBytes,
+  List<GlossaryEntry> glossary,
+) {
+  final reasons = <FailureReason>{};
+  final hints = <String>[];
+  var warnings = 0;
+  final issues = lintTranslation(
+    source: source,
+    target: text,
+    glossary: glossary,
+  );
+  final wantNl = '\n'.allMatches(source).length;
+  for (final i in issues) {
+    switch (i.kind) {
+      case LintKind.emptyTranslation:
+        reasons.add(FailureReason.missing);
+        hints.add('la traduction est vide');
+      case LintKind.newlineCount:
+        reasons.add(FailureReason.newlineCount);
+        hints.add('le texte doit contenir exactement $wantNl saut(s) de ligne');
+      case LintKind.nulChar:
+        reasons.add(FailureReason.nulChar);
+        hints.add('supprime le caractère NUL');
+      case LintKind.mandatoryTerm:
+        reasons.add(FailureReason.mandatoryTerm);
+        hints.add('emploie le terme obligatoire « ${i.detail} »');
+      case LintKind.edgeWhitespace:
+      case LintKind.suggestedTerm:
+      case LintKind.frenchSpacing:
+        warnings++;
+    }
+  }
+  final size = _bytes(text);
+  if (size > maxBytes) {
+    reasons.add(FailureReason.overBudget);
+    hints.add('trop long ($size octets, maximum $maxBytes) : raccourcis');
+  }
+  return _Check(reasons, hints, warnings);
+}
+
+/// Pré-traduit les chaînes du fichier [fileId] et les enregistre en `draft`.
+///
+/// Sélection : chaînes non alias, non vides, contenant du japonais, sans
+/// traduction (ou en `draft` si [PreTranslateOptions.includeDrafts]). Relancer
+/// la fonction ne retraduit donc pas ce qui l'est déjà. [model] sert aussi de
+/// provenance (`ai:<model>`) dans `author_id`.
+Future<PreTranslateReport> preTranslateFile({
+  required TranslationRepository repo,
+  required GlossaryRepository glossary,
+  required ChatClient client,
+  required String model,
+  required int fileId,
+  PreTranslateOptions options = const PreTranslateOptions(),
+  CancelToken? cancel,
+  void Function(PreTranslateProgress progress)? onProgress,
+}) async {
+  final slots = await repo.slots(fileId, limit: await repo.countSlots(fileId));
+  final entries = [
+    for (final t in await glossary.all())
+      GlossaryEntry(
+        sourceTerm: t.sourceTerm,
+        targetTerm: t.targetTerm,
+        mandatory: t.mandatory,
+      ),
+  ];
+
+  var skippedEmpty = 0;
+  var skippedNoJapanese = 0;
+  final units = <TranslationUnit>[];
+  final indexById = <int, int>{};
+  for (var i = 0; i < slots.length; i++) {
+    final s = slots[i];
+    indexById[s.sourceId] = i;
+    if (s.isAlias) continue;
+    final t = s.translation;
+    final todo = t == null ||
+        t.status == 'untranslated' ||
+        (options.includeDrafts && t.status == 'draft');
+    if (!todo) continue;
+    if (s.sourceText.trim().isEmpty) {
+      skippedEmpty++;
+      continue;
+    }
+    if (!_japanese.hasMatch(s.sourceText)) {
+      skippedNoJapanese++;
+      continue;
+    }
+    final max = _bytes(s.sourceText);
+    units.add(
+      TranslationUnit(
+        id: s.sourceId,
+        source: s.sourceText,
+        maxBytes: max < options.minMaxBytes ? options.minMaxBytes : max,
+      ),
+    );
+  }
+
+  final batches = buildBatches(
+    units,
+    maxUnits: options.maxUnits,
+    maxBatchTokens: (options.maxBatchTokens - options.fixedPromptTokens).clamp(
+      200,
+      1 << 30,
+    ),
+    tokensPerEstimate: options.tokensPerEstimate,
+  );
+
+  var saved = 0;
+  var conflicts = 0;
+  var warnings = 0;
+  var promptTokens = 0;
+  var completionTokens = 0;
+  var done = 0;
+  var batchCount = 0;
+  var cancelled = false;
+  TranslateError? stoppedBy;
+  final failed = <FailedUnit>[];
+
+  List<String> neighbours(int from, int step) {
+    final out = <String>[];
+    for (var i = from;
+        i >= 0 && i < slots.length && out.length < options.contextSize;
+        i += step) {
+      final s = slots[i].sourceText.trim();
+      if (s.isEmpty) continue;
+      out.add(
+        s.length > options.contextChars
+            ? s.substring(0, options.contextChars)
+            : s,
+      );
+    }
+    return step < 0 ? out.reversed.toList() : out;
+  }
+
+  /// Un appel au modèle ; retourne les traductions reçues (peut être vide).
+  Future<Map<int, String>> ask(
+    Batch batch,
+    BatchContext ctx, {
+    int tokenFactor = 1,
+  }) async {
+    batchCount++;
+    final out = (batch.units.length * 60 + 300) * tokenFactor;
+    try {
+      final r = await client.chat(
+        model: model,
+        messages: buildMessages(batch, options: options.prompt, context: ctx),
+        temperature: options.temperature,
+        maxTokens: out.clamp(512, 12000),
+        jsonSchema: translationSchema(),
+      );
+      promptTokens += r.promptTokens ?? 0;
+      completionTokens += r.completionTokens ?? 0;
+      return parseTranslations(r.content, batch).translations;
+    } on TranslateError catch (e) {
+      switch (e.kind) {
+        case TranslateErrorKind.invalidResponse:
+        case TranslateErrorKind.emptyResponse:
+        case TranslateErrorKind.truncated:
+          return const {}; // lot traité comme « rien reçu » : nouvel essai
+        case TranslateErrorKind.unreachable:
+        case TranslateErrorKind.timeout:
+        case TranslateErrorKind.http:
+          rethrow;
+      }
+    }
+  }
+
+  for (final batch in batches) {
+    if (cancel?.isCancelled ?? false) {
+      cancelled = true;
+      break;
+    }
+    try {
+      final first = indexById[batch.units.first.id]!;
+      final last = indexById[batch.units.last.id]!;
+      final ctx = BatchContext(
+        before: neighbours(first - 1, -1),
+        after: neighbours(last + 1, 1),
+        glossary: entries,
+      );
+      final byId = {for (final u in batch.units) u.id: u};
+      final accepted = <int, String>{};
+      final reasons = <int, Set<FailureReason>>{};
+      final hints = <int, List<String>>{};
+
+      void judge(Map<int, String> got, Iterable<TranslationUnit> asked) {
+        for (final u in asked) {
+          final raw = got[u.id];
+          if (raw == null) {
+            reasons[u.id] = {FailureReason.missing};
+            hints[u.id] = ['traduction manquante'];
+            continue;
+          }
+          final text = _normalize(u.source, raw);
+          final c = _validate(u.source, text, u.maxBytes, entries);
+          if (c.reasons.isEmpty) {
+            accepted[u.id] = text;
+            reasons.remove(u.id);
+            warnings += c.warnings;
+          } else {
+            reasons[u.id] = c.reasons;
+            hints[u.id] = c.hints;
+          }
+        }
+      }
+
+      judge(await ask(batch, ctx), batch.units);
+      if (reasons.isNotEmpty) {
+        final retryUnits = [
+          for (final u in batch.units)
+            if (reasons.containsKey(u.id)) u,
+        ];
+        final retryCtx = BatchContext(
+          before: ctx.before,
+          after: ctx.after,
+          glossary: ctx.glossary,
+          corrections: {
+            for (final u in retryUnits) u.id: hints[u.id]!.join(' ; '),
+          },
+        );
+        judge(
+          await ask(Batch(retryUnits, 0), retryCtx, tokenFactor: 2),
+          retryUnits,
+        );
+      }
+
+      for (final u in batch.units) {
+        final text = accepted[u.id];
+        if (text == null) {
+          failed
+              .add(FailedUnit(u.id, reasons[u.id] ?? {FailureReason.missing}));
+          continue;
+        }
+        final slot = slots[indexById[u.id]!];
+        final result = await repo.saveTranslation(
+          sourceId: u.id,
+          text: text,
+          status: 'draft',
+          expectedRevision: slot.translation?.revision,
+          authorId: 'ai:$model',
+        );
+        if (result is SaveOk) {
+          saved++;
+        } else {
+          conflicts++;
+        }
+      }
+      done += byId.length;
+      onProgress?.call(
+        PreTranslateProgress(
+          processed: done,
+          total: units.length,
+          saved: saved,
+          failed: failed.length,
+        ),
+      );
+    } on TranslateError catch (e) {
+      stoppedBy = e;
+      break;
+    }
+  }
+
+  return PreTranslateReport(
+    candidates: units.length,
+    saved: saved,
+    failed: failed,
+    conflicts: conflicts,
+    skippedNoJapanese: skippedNoJapanese,
+    skippedEmpty: skippedEmpty,
+    warnings: warnings,
+    batches: batchCount,
+    promptTokens: promptTokens,
+    completionTokens: completionTokens,
+    cancelled: cancelled,
+    stoppedBy: stoppedBy,
+    unprocessed: units.length - done,
+  );
+}
