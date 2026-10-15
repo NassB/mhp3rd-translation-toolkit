@@ -99,6 +99,7 @@ class FakeClient implements ChatClient {
   Completer<void>? gate;
   TranslateError? failure;
   TranslateError? modelsFailure;
+  Map<String, String>? answers;
   final calls = <List<int>>[];
   final endpoints = <Uri>[];
 
@@ -122,8 +123,8 @@ class FakeClient implements ChatClient {
           for (final i in items)
             if (answerAll)
               {'id': i['id'], 'text': 'T${i['id']}'}
-            else if (dict.containsKey(i['text']))
-              {'id': i['id'], 'text': dict[i['text']]},
+            else if ((answers ?? dict).containsKey(i['text']))
+              {'id': i['id'], 'text': (answers ?? dict)[i['text']]},
         ],
       }),
       finishReason: 'stop',
@@ -152,6 +153,8 @@ void main() {
   late TdbDatabase db;
   late TranslationRepository repo;
   late FakeClient client;
+  final logTextFlags = <bool>[];
+  late MemoryLog lastLog;
   late FakeSettings settings;
 
   Future<void> setUpDb(StringTableFile file) async {
@@ -170,6 +173,7 @@ void main() {
 
   setUp(() {
     client = FakeClient();
+    logTextFlags.clear();
     settings = FakeSettings(
       const AiSettings(endpoint: 'http://127.0.0.1:1235/v1', model: 'model-a'),
     );
@@ -193,9 +197,16 @@ void main() {
     }),
     aiSettingsStoreProvider.overrideWithValue(settings),
     aiApiKeyProvider.overrideWithValue(null),
+    preTranslateLogFactoryProvider.overrideWithValue((dir, fileId, text) {
+      logTextFlags.add(text);
+      lastLog = MemoryLog(includeText: text);
+      return (log: lastLog, path: '$dir/logs/pretranslate-$fileId.jsonl');
+    }),
   ];
 
   Future<void> openPage(WidgetTester t) async {
+    await t.binding.setSurfaceSize(const Size(1100, 1000));
+    addTearDown(() => t.binding.setSurfaceSize(null));
     await t.pumpWidget(
       ProviderScope(
         overrides: overrides(),
@@ -292,6 +303,39 @@ void main() {
     await t.tap(find.byKey(const Key('ai-close')));
     await settle(t);
     expect(find.textContaining('· draft · IA'), findsNWidgets(2));
+  });
+
+  testWidgets('the summary gives the log path and the reasons of refusals', (
+    t,
+  ) async {
+    await prepareSmall();
+    client.answers = {...dict, thanks: 'Merci beaucoup.'}; // perd le \n
+    await openPage(t);
+    await openDialog(t);
+    await t.tap(find.byKey(const Key('ai-run')));
+    await settle(t);
+    expect(
+      find.textContaining('sauts de ligne différents de la source (1)'),
+      findsOneWidget,
+    );
+    expect(find.text('Journal : p/logs/pretranslate-17.jsonl'), findsOneWidget);
+    expect(logTextFlags, [false]);
+    expect(lastLog.ofType('failed'), hasLength(1));
+    expect(lastLog.ofType('run_end'), hasLength(1));
+  });
+
+  testWidgets('the game text goes to the log only when the box is ticked', (
+    t,
+  ) async {
+    await prepareSmall();
+    await openPage(t);
+    await openDialog(t);
+    await t.tap(find.byKey(const Key('ai-log-text')));
+    await t.pump();
+    await t.tap(find.byKey(const Key('ai-run')));
+    await settle(t);
+    expect(logTextFlags, [true]);
+    expect(lastLog.includeText, isTrue);
   });
 
   testWidgets('a model is required before running', (t) async {

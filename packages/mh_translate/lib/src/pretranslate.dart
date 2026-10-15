@@ -23,6 +23,7 @@ import 'package:mh_tdb/mh_tdb.dart';
 
 import 'batching.dart';
 import 'chat_client.dart';
+import 'pretranslate_log.dart';
 import 'prompt.dart';
 import 'response_parser.dart';
 
@@ -338,6 +339,7 @@ Future<PreTranslateReport> preTranslateFile({
   PreTranslateOptions options = const PreTranslateOptions(),
   CancelToken? cancel,
   void Function(PreTranslateProgress progress)? onProgress,
+  PreTranslateLog? log,
 }) async {
   final slots = await repo.slots(fileId, limit: await repo.countSlots(fileId));
   final entries = [
@@ -369,6 +371,40 @@ Future<PreTranslateReport> preTranslateFile({
   var cancelled = false;
   TranslateError? stoppedBy;
   final failed = <FailedUnit>[];
+  final acceptedAt = <int, int>{}; // identifiant -> numéro d'essai
+
+  void emit(String type, [Map<String, Object?> data = const {}]) {
+    log?.add({
+      't': DateTime.now().toUtc().toIso8601String(),
+      'type': type,
+      ...data,
+    });
+  }
+
+  Map<String, Object?> where(int id) {
+    final s = slots[indexById[id]!];
+    return {
+      'file': fileId,
+      'sourceId': id,
+      'table': s.tableIdx,
+      'slot': s.slotIdx,
+    };
+  }
+
+  emit('run_start', {
+    'file': fileId,
+    'model': model,
+    'candidates': units.length,
+    'batches': batches.length,
+    'skippedEmpty': plan.skippedEmpty,
+    'skippedNoJapanese': plan.skippedNoJapanese,
+    'startDeltaBytes': startDelta.total,
+    'includeDrafts': options.includeDrafts,
+    'aiDraftsOnly': options.aiDraftsOnly,
+    'temperature': options.temperature,
+    'maxUnits': options.maxUnits,
+    'includesText': log?.includeText ?? false,
+  });
 
   List<String> neighbours(int from, int step) {
     final out = <String>[];
@@ -391,21 +427,46 @@ Future<PreTranslateReport> preTranslateFile({
     Batch batch,
     BatchContext ctx, {
     int tokenFactor = 1,
+    String phase = 'first',
   }) async {
     batchCount++;
     final out = (batch.units.length * 60 + 300) * tokenFactor;
+    final maxTokens = out.clamp(512, 12000);
+    final started = DateTime.now();
+    int ms() => DateTime.now().difference(started).inMilliseconds;
     try {
       final r = await client.chat(
         model: model,
         messages: buildMessages(batch, options: options.prompt, context: ctx),
         temperature: options.temperature,
-        maxTokens: out.clamp(512, 12000),
+        maxTokens: maxTokens,
         jsonSchema: translationSchema(),
       );
       promptTokens += r.promptTokens ?? 0;
       completionTokens += r.completionTokens ?? 0;
-      return parseTranslations(r.content, batch).translations;
+      final parsed = parseTranslations(r.content, batch);
+      emit('request', {
+        'phase': phase,
+        'asked': batch.units.length,
+        'received': parsed.translations.length,
+        'missing': parsed.missing.length,
+        'unexpected': parsed.unexpected.length,
+        'invalid': parsed.invalid.length,
+        'finishReason': r.finishReason,
+        'promptTokens': r.promptTokens,
+        'completionTokens': r.completionTokens,
+        'maxTokens': maxTokens,
+        'ms': ms(),
+      });
+      return parsed.translations;
     } on TranslateError catch (e) {
+      emit('request', {
+        'phase': phase,
+        'asked': batch.units.length,
+        'error': e.kind.name,
+        'maxTokens': maxTokens,
+        'ms': ms(),
+      });
       switch (e.kind) {
         case TranslateErrorKind.invalidResponse:
         case TranslateErrorKind.emptyResponse:
@@ -436,28 +497,58 @@ Future<PreTranslateReport> preTranslateFile({
       final reasons = <int, Set<FailureReason>>{};
       final hints = <int, List<String>>{};
 
-      void judge(Map<int, String> got, Iterable<TranslationUnit> asked) {
+      void judge(
+        Map<int, String> got,
+        Iterable<TranslationUnit> asked,
+        int attempt,
+      ) {
         for (final u in asked) {
           final raw = got[u.id];
           if (raw == null) {
             reasons[u.id] = {FailureReason.missing};
             hints[u.id] = ['traduction manquante'];
+            emit('rejected', {
+              ...where(u.id),
+              'attempt': attempt,
+              'reasons': ['missing'],
+              'srcBytes': _bytes(u.source),
+              'maxBytes': u.maxBytes,
+              if (log?.includeText ?? false) 'source': u.source,
+            });
             continue;
           }
           final text = _normalize(u.source, raw);
           final c = _validate(u.source, text, u.maxBytes, entries);
           if (c.reasons.isEmpty) {
             accepted[u.id] = text;
+            acceptedAt[u.id] = attempt;
             reasons.remove(u.id);
             warnings += c.warnings;
           } else {
             reasons[u.id] = c.reasons;
             hints[u.id] = c.hints;
+            emit('rejected', {
+              ...where(u.id),
+              'attempt': attempt,
+              'reasons': [for (final r in c.reasons) r.name],
+              'hints': c.hints,
+              'srcBytes': _bytes(u.source),
+              'candBytes': _bytes(text),
+              'maxBytes': u.maxBytes,
+              'newlines': {
+                'source': '\n'.allMatches(u.source).length,
+                'candidate': '\n'.allMatches(text).length,
+              },
+              if (log?.includeText ?? false) ...{
+                'source': u.source,
+                'candidate': text,
+              },
+            });
           }
         }
       }
 
-      judge(await ask(batch, ctx), batch.units);
+      judge(await ask(batch, ctx), batch.units, 1);
       if (reasons.isNotEmpty) {
         final retryUnits = [
           for (final u in batch.units)
@@ -472,17 +563,27 @@ Future<PreTranslateReport> preTranslateFile({
           },
         );
         judge(
-          await ask(Batch(retryUnits, 0), retryCtx, tokenFactor: 2),
+          await ask(
+            Batch(retryUnits, 0),
+            retryCtx,
+            tokenFactor: 2,
+            phase: 'retry',
+          ),
           retryUnits,
+          2,
         );
       }
 
       for (final u in batch.units) {
         final text = accepted[u.id];
         if (text == null) {
-          failed.add(
-            FailedUnit(u.id, reasons[u.id] ?? {FailureReason.missing}),
-          );
+          final why = reasons[u.id] ?? {FailureReason.missing};
+          failed.add(FailedUnit(u.id, why));
+          emit('failed', {
+            ...where(u.id),
+            'reasons': [for (final r in why) r.name],
+            'srcBytes': _bytes(u.source),
+          });
           continue;
         }
         final slot = slots[indexById[u.id]!];
@@ -495,12 +596,19 @@ Future<PreTranslateReport> preTranslateFile({
         );
         if (result is SaveOk) {
           saved++;
+          emit('saved', {
+            ...where(u.id),
+            'attempt': acceptedAt[u.id],
+            'srcBytes': _bytes(u.source),
+            'bytes': _bytes(text),
+          });
           final d = _delta(slot, text);
           delta += d - (contribution[u.id] ?? 0);
           contribution[u.id] = d;
           savedNow[u.id] = _Saved(u, text, result.translation.revision);
         } else {
           conflicts++;
+          emit('conflict', {...where(u.id), 'phase': 'first'});
         }
       }
       done += batch.units.length;
@@ -514,6 +622,7 @@ Future<PreTranslateReport> preTranslateFile({
       );
     } on TranslateError catch (e) {
       stoppedBy = e;
+      emit('stopped', {'error': e.kind.name, 'phase': 'translate'});
       break;
     }
   }
@@ -562,15 +671,29 @@ Future<PreTranslateReport> preTranslateFile({
                     'vise ${u.maxBytes} octets au maximum',
             },
           ),
+          phase: 'shorten',
         );
         for (final u in asked) {
           if (delta <= 0) break;
           final raw = got[u.id];
-          if (raw == null) continue;
+          if (raw == null) {
+            emit('shorten_skipped', {
+              ...where(u.id),
+              'reasons': ['missing'],
+            });
+            continue;
+          }
           final text = _normalize(u.source, raw);
           final current = savedNow[u.id]!;
           final c = _validate(u.source, text, u.maxBytes, entries);
           if (c.reasons.isNotEmpty || _bytes(text) >= _bytes(current.text)) {
+            emit('shorten_skipped', {
+              ...where(u.id),
+              'reasons': [for (final r in c.reasons) r.name],
+              'currentBytes': _bytes(current.text),
+              'candBytes': _bytes(text),
+              'maxBytes': u.maxBytes,
+            });
             continue;
           }
           final slot = slots[indexById[u.id]!];
@@ -582,6 +705,7 @@ Future<PreTranslateReport> preTranslateFile({
             authorId: 'ai:$model',
           );
           if (result is SaveOk) {
+            final before = _bytes(current.text);
             final d = _delta(slot, text);
             delta += d - (contribution[u.id] ?? 0);
             contribution[u.id] = d;
@@ -589,18 +713,25 @@ Future<PreTranslateReport> preTranslateFile({
               ..text = text
               ..revision = result.translation.revision;
             shortened++;
+            emit('shortened', {
+              ...where(u.id),
+              'fromBytes': before,
+              'toBytes': _bytes(text),
+            });
           } else {
             conflicts++;
+            emit('conflict', {...where(u.id), 'phase': 'shorten'});
           }
         }
       } on TranslateError catch (e) {
         stoppedBy = e;
+        emit('stopped', {'error': e.kind.name, 'phase': 'shorten'});
         break;
       }
     }
   }
 
-  return PreTranslateReport(
+  final report = PreTranslateReport(
     candidates: units.length,
     saved: saved,
     failed: failed,
@@ -618,6 +749,30 @@ Future<PreTranslateReport> preTranslateFile({
     endDeltaBytes: delta,
     shortened: shortened,
   );
+  final byReason = <String, int>{};
+  for (final f in failed) {
+    for (final r in f.reasons) {
+      byReason[r.name] = (byReason[r.name] ?? 0) + 1;
+    }
+  }
+  emit('run_end', {
+    'saved': saved,
+    'failed': failed.length,
+    'failedByReason': byReason,
+    'conflicts': conflicts,
+    'shortened': shortened,
+    'warnings': warnings,
+    'requests': batchCount,
+    'promptTokens': promptTokens,
+    'completionTokens': completionTokens,
+    'cancelled': cancelled,
+    'stoppedBy': stoppedBy?.kind.name,
+    'unprocessed': units.length - done,
+    'startDeltaBytes': startDelta.total,
+    'endDeltaBytes': delta,
+    'withinBudget': delta <= 0,
+  });
+  return report;
 }
 
 class _Selection {

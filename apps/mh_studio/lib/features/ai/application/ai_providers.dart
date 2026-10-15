@@ -20,6 +20,22 @@ ChatClientFactory chatClientFactory(Ref ref) =>
     (endpoint, apiKey) =>
         OpenAiCompatibleClient(endpoint: endpoint, apiKey: apiKey);
 
+/// Crée le journal d'une exécution : dossier du projet, fichier traité, texte
+/// du jeu inclus ou non. Retourne aussi le chemin du fichier (`null` : aucun
+/// fichier). Remplaçable dans les tests.
+typedef LogFactory = ({PreTranslateLog? log, String? path}) Function(
+  String projectDir,
+  int fileId,
+  bool includeText,
+);
+
+/// Journal JSON Lines dans `<projet>/logs/` (voir `JsonlFileLog`).
+@riverpod
+LogFactory preTranslateLogFactory(Ref ref) => (dir, fileId, includeText) {
+  final path = defaultLogPath(dir, fileId);
+  return (log: JsonlFileLog(path, includeText: includeText), path: path);
+};
+
 /// Clé d'API éventuelle : **uniquement** la variable d'environnement
 /// `MHTK_LLM_API_KEY` (jamais enregistrée dans le projet).
 @riverpod
@@ -71,9 +87,12 @@ final class AiRunning extends AiRunState {
 
 /// Terminée (même avec des chaînes en échec) : voir le rapport.
 final class AiDone extends AiRunState {
-  const AiDone(this.report);
+  const AiDone(this.report, {this.logPath});
 
   final PreTranslateReport report;
+
+  /// Fichier du journal de l'exécution (`null` : aucun).
+  final String? logPath;
 }
 
 /// Impossible de démarrer ou erreur inattendue ; message sans texte du jeu.
@@ -134,6 +153,7 @@ class AiRunner extends _$AiRunner {
     required String model,
     int? onlySourceId,
     bool includeDrafts = false,
+    bool logText = false,
   }) async {
     final repo = ref.read(translationRepositoryProvider);
     final glossary = ref.read(glossaryRepositoryProvider);
@@ -155,6 +175,14 @@ class AiRunner extends _$AiRunner {
       uri,
       ref.read(aiApiKeyProvider),
     );
+    final project = ref.read(currentProjectProvider);
+    final logged = project == null
+        ? (log: null, path: null)
+        : ref.read(preTranslateLogFactoryProvider)(
+            project.dir,
+            fileId,
+            logText,
+          );
     state = const AiRunning(processed: 0, total: 0);
     try {
       final report = await preTranslateFile(
@@ -165,6 +193,7 @@ class AiRunner extends _$AiRunner {
         fileId: fileId,
         options: options,
         cancel: cancel,
+        log: logged.log,
         onProgress: (p) {
           if (ref.mounted) {
             state = AiRunning(processed: p.processed, total: p.total);
@@ -176,7 +205,7 @@ class AiRunner extends _$AiRunner {
           .read(aiSettingsStoreProvider)
           ?.save(AiSettings(endpoint: endpoint.trim(), model: model));
       if (report.saved > 0 || report.shortened > 0) _refresh(fileId);
-      state = AiDone(report);
+      state = AiDone(report, logPath: logged.path);
     } on Object catch (e) {
       // Aucun texte du jeu : seul le type d'erreur est affiché.
       if (ref.mounted) state = AiFailed('Erreur : ${e.runtimeType}');

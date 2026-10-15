@@ -60,6 +60,53 @@ final class ChatClientFactoryProvider
 
 String _$chatClientFactoryHash() => r'e84d4ab0add169eb270ae2d529046aa88bef0524';
 
+/// Journal JSON Lines dans `<projet>/logs/` (voir `JsonlFileLog`).
+
+@ProviderFor(preTranslateLogFactory)
+final preTranslateLogFactoryProvider = PreTranslateLogFactoryProvider._();
+
+/// Journal JSON Lines dans `<projet>/logs/` (voir `JsonlFileLog`).
+
+final class PreTranslateLogFactoryProvider
+    extends $FunctionalProvider<LogFactory, LogFactory, LogFactory>
+    with $Provider<LogFactory> {
+  /// Journal JSON Lines dans `<projet>/logs/` (voir `JsonlFileLog`).
+  PreTranslateLogFactoryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'preTranslateLogFactoryProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$preTranslateLogFactoryHash();
+
+  @$internal
+  @override
+  $ProviderElement<LogFactory> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  LogFactory create(Ref ref) {
+    return preTranslateLogFactory(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(LogFactory value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<LogFactory>(value),
+    );
+  }
+}
+
+String _$preTranslateLogFactoryHash() =>
+    r'5e57329d24976727782c3c73caf9555e2d2e6b52';
+
 /// Clé d'API éventuelle : **uniquement** la variable d'environnement
 /// `MHTK_LLM_API_KEY` (jamais enregistrée dans le projet).
 
@@ -198,7 +245,7 @@ final class AiRunnerProvider extends $NotifierProvider<AiRunner, AiRunState> {
   }
 }
 
-String _$aiRunnerHash() => r'968b5d2ed636b18da5d166b30c66f314cd51eada';
+String _$aiRunnerHash() => r'd3d4cbb2323d470123ec23ed3b5f61308a528eb4';
 
 /// Lance et suit la pré-traduction d'un fichier (ou d'une chaîne). Le moteur
 /// est asynchrone : l'interface reste réactive, sans isolate.

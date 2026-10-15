@@ -8,14 +8,18 @@ import 'package:mh_translate/mh_translate.dart';
 const String _usage = '''
 usage: mhtk pretranslate --project <dir> --file <id> --model <id>
          [--endpoint http://localhost:1234/v1] [--limit N] [--include-drafts] [--ai-drafts-only]
-         [--dry-run] [--allow-remote]
+         [--dry-run] [--allow-remote] [--log <file.jsonl>] [--log-text]
        mhtk pretranslate --list-models [--endpoint ...]
 
 Translates untranslated Japanese strings with a language model and saves them
 as drafts (never over translated/reviewed/locked ones). Game text is sent only
 to the endpoint, which must be local unless --allow-remote is given. No game
 text is ever printed. Environment: MHTK_LLM_ENDPOINT (default endpoint),
-MHTK_LLM_API_KEY (optional bearer key).''';
+MHTK_LLM_API_KEY (optional bearer key).
+
+A JSON Lines log is written to <project>/logs/pretranslate-<file>-<time>.jsonl
+(or --log): ids, reasons and sizes only. --log-text also writes the Japanese
+source and the rejected proposals: keep that file local.''';
 
 /// Crée le client de chat ; remplaçable dans les tests.
 typedef ChatClientFactory = ChatClient Function(Uri endpoint, String? apiKey);
@@ -37,13 +41,14 @@ Future<int> runPretranslate(
   final environment = env ?? Platform.environment;
   final values = <String, String>{};
   final flags = <String>{};
-  const withValue = {'project', 'file', 'model', 'endpoint', 'limit'};
+  const withValue = {'project', 'file', 'model', 'endpoint', 'limit', 'log'};
   const bare = {
     'include-drafts',
     'ai-drafts-only',
     'dry-run',
     'allow-remote',
     'list-models',
+    'log-text',
   };
   for (var i = 0; i < args.length; i++) {
     final a = args[i];
@@ -162,6 +167,8 @@ Future<int> runPretranslate(
       return 0;
     }
 
+    final logPath = values['log'] ?? defaultLogPath(dir, fileId);
+    final log = JsonlFileLog(logPath, includeText: flags.contains('log-text'));
     client = clientFactory(endpoint, apiKey);
     final started = DateTime.now();
     final report = await preTranslateFile(
@@ -172,6 +179,7 @@ Future<int> runPretranslate(
       fileId: fileId,
       options: options,
       cancel: cancel,
+      log: log,
       onProgress: (p) => out.writeln(
         'progress ${p.processed}/${p.total}: saved ${p.saved}, '
         'failed ${p.failed}',
@@ -202,6 +210,10 @@ Future<int> runPretranslate(
                 '${report.overBudgetBytes} byte(s): shorten some drafts in '
                 'the studio before promoting them',
       );
+    out.writeln(
+      'log: $logPath'
+      '${flags.contains('log-text') ? ' (contains game text: keep it local)' : ''}',
+    );
     if (report.cancelled) {
       out.writeln('cancelled: ${report.unprocessed} string(s) not processed');
       return 1;

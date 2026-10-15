@@ -18,3 +18,6 @@ build/
 
 # FVM : on commite .fvmrc, pas le SDK
 .fvm/
+
+# Journaux de pré-traduction (peuvent contenir du texte du jeu)
+logs/

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
 
@@ -147,6 +148,7 @@ void main() {
     PreTranslateOptions options = const PreTranslateOptions(),
     CancelToken? cancel,
     void Function(PreTranslateProgress)? onProgress,
+    PreTranslateLog? log,
   }) =>
       preTranslateFile(
         repo: repo,
@@ -157,6 +159,7 @@ void main() {
         options: options,
         cancel: cancel,
         onProgress: onProgress,
+        log: log,
       );
 
   Future<Map<String, TranslationInfo?>> stored() async => {
@@ -181,6 +184,127 @@ void main() {
     final s = await stored();
     expect(s[water]!.text, 'Eau (brouillon)'); // brouillon humain intact
     expect(s[hello]!.text, endsWith('!'));
+  });
+
+  group('journal', () {
+    test('by default it holds ids, reasons and sizes but no game text',
+        () async {
+      final log = MemoryLog();
+      // `thanks` perd son saut de ligne aux deux essais : échec final.
+      final client = ScriptedClient(
+        (r, _) => answer(r, {...dict, thanks: 'Merci beaucoup.'}),
+      );
+      await run(client, log: log);
+      expect(log.ofType('run_start'), hasLength(1));
+      expect(log.ofType('run_end').single['failed'], 1);
+      expect(log.ofType('run_end').single['failedByReason'], {
+        'newlineCount': 1,
+      });
+      final failed = log.ofType('failed').single;
+      expect(failed['reasons'], ['newlineCount']);
+      expect(failed['table'], 0);
+      expect(failed['slot'], 1);
+      expect(log.ofType('rejected'), hasLength(2)); // essai 1 et essai 2
+      expect(log.ofType('rejected').first['newlines'], {
+        'source': 1,
+        'candidate': 0,
+      });
+      expect(log.ofType('saved'), hasLength(3));
+      final all = jsonEncode(log.events);
+      for (final text in [...dict.keys, ...dict.values, 'Merci beaucoup.']) {
+        expect(all, isNot(contains(text)));
+      }
+    });
+
+    test('includeText adds the source and the rejected candidate', () async {
+      final log = MemoryLog(includeText: true);
+      final client = ScriptedClient(
+        (r, _) => answer(r, {...dict, thanks: 'Merci beaucoup.'}),
+      );
+      await run(client, log: log);
+      final rej = log.ofType('rejected').first;
+      expect(rej['source'], thanks);
+      expect(rej['candidate'], 'Merci beaucoup.');
+      expect(log.ofType('run_start').single['includesText'], isTrue);
+    });
+
+    test('a string fixed by the retry is logged as rejected then saved',
+        () async {
+      final log = MemoryLog();
+      final client = ScriptedClient(
+        (r, call) => answer(
+          r,
+          {...dict, if (call == 0) thanks: 'Merci beaucoup.'},
+        ),
+      );
+      await run(client, log: log);
+      expect(log.ofType('failed'), isEmpty);
+      expect(log.ofType('rejected').single['attempt'], 1);
+      final fixed = [
+        for (final e in log.ofType('saved'))
+          if (e['attempt'] == 2) e,
+      ];
+      expect(fixed.single['slot'], 1);
+      expect(
+        [for (final e in log.ofType('request')) e['phase']],
+        ['first', 'retry'],
+      );
+    });
+
+    test('a missing answer and an unusable response are explained', () async {
+      final log = MemoryLog();
+      final client = ScriptedClient(
+        (r, _) => answer(r, dict, skip: {r.ids.first}),
+      );
+      await run(client, log: log);
+      final req = log.ofType('request').first;
+      expect(req['asked'], 4);
+      expect(req['received'], 3);
+      expect(req['missing'], 1);
+      expect(req['finishReason'], 'stop');
+      expect(log.ofType('failed').single['reasons'], ['missing']);
+    });
+
+    test('an unusable response is logged for both attempts', () async {
+      final log2 = MemoryLog();
+      await run(ScriptedClient((r, _) => 'not json at all'), log: log2);
+      expect(log2.ofType('request').map((e) => e['error']), [
+        'invalidResponse',
+        'invalidResponse',
+      ]);
+      expect(log2.ofType('failed'), hasLength(4));
+    });
+
+    test('a provider failure is logged as stopped', () async {
+      final log = MemoryLog();
+      await run(
+        ScriptedClient((r, _) {
+          throw const TranslateError(TranslateErrorKind.timeout, 'late');
+        }),
+        log: log,
+      );
+      expect(log.ofType('stopped').single['error'], 'timeout');
+      expect(log.ofType('run_end').single['stoppedBy'], 'timeout');
+    });
+
+    test('the file log writes one JSON object per line', () async {
+      final dir = Directory.systemTemp.createTempSync('mhlog');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final path =
+          defaultLogPath(dir.path, 17, DateTime.utc(2026, 10, 16, 1, 2, 3));
+      expect(path, '${dir.path}/logs/pretranslate-17-20261016-010203.jsonl');
+      await run(
+        ScriptedClient((r, _) => answer(r, dict)),
+        log: JsonlFileLog(path),
+      );
+      final lines = File(path).readAsLinesSync();
+      final types = [
+        for (final l in lines) (jsonDecode(l) as Map)['type'],
+      ];
+      expect(types.first, 'run_start');
+      expect(types.last, 'run_end');
+      expect(types.where((t) => t == 'saved'), hasLength(4));
+    });
   });
 
   test('translates the candidates as drafts and leaves the rest alone',

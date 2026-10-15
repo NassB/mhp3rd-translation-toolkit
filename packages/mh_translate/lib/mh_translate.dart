@@ -8,5 +8,6 @@ export 'src/evaluation.dart';
 export 'src/glossary_bootstrap.dart';
 export 'src/openai_compatible_client.dart';
 export 'src/pretranslate.dart';
+export 'src/pretranslate_log.dart';
 export 'src/prompt.dart';
 export 'src/response_parser.dart';

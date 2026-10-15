@@ -255,6 +255,34 @@ void main() {
     expect(client.calls, 1);
   });
 
+  test('a run writes a JSON Lines log without game text by default', () async {
+    final (code, out, err) = await pre(base());
+    expect(code, 0, reason: err);
+    final logs = Directory('$project/logs').listSync();
+    expect(logs, hasLength(1));
+    expect(out, contains('log: $project/logs/pretranslate-1-'));
+    final text = File(logs.single.path).readAsStringSync();
+    expect(text, contains('"type":"run_end"'));
+    for (final t in [hello, thanks, pen, ...dict.values]) {
+      expect(text, isNot(contains(t)));
+    }
+  });
+
+  test('--log and --log-text choose the file and add the game text', () async {
+    final path = '${tmp.path}/my.jsonl';
+    final (code, out, err) = await pre(base(['--log', path, '--log-text']));
+    expect(code, 0, reason: err);
+    expect(out, contains('log: $path (contains game text: keep it local)'));
+    final text = File(path).readAsStringSync();
+    expect(text, contains('"includesText":true'));
+    expect(Directory('$project/logs').existsSync(), isFalse);
+  });
+
+  test('--dry-run writes no log', () async {
+    await pre(base(['--dry-run']));
+    expect(Directory('$project/logs').existsSync(), isFalse);
+  });
+
   test('--limit restricts the run to the first strings', () async {
     final (code, out, _) = await pre(base(['--limit', '2']));
     expect(code, 0);

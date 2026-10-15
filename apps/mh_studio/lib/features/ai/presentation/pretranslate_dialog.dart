@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mh_binary/mh_binary.dart';
 import 'package:mh_translate/mh_translate.dart';
@@ -49,6 +50,7 @@ class _PreTranslateDialogState extends ConsumerState<PreTranslateDialog> {
   PreTranslatePlan? _plan;
   bool _planning = false;
   bool _confirmRemote = false;
+  bool _logText = false;
 
   @override
   void initState() {
@@ -134,6 +136,7 @@ class _PreTranslateDialogState extends ConsumerState<PreTranslateDialog> {
           model: _model.text.trim(),
           onlySourceId: _only,
           includeDrafts: _scope == AiScope.fileWithDrafts,
+          logText: _logText,
         );
   }
 
@@ -231,6 +234,19 @@ class _PreTranslateDialogState extends ConsumerState<PreTranslateDialog> {
                     style: TextStyle(color: scheme.error),
                   ),
                 ),
+              CheckboxListTile(
+                key: const Key('ai-log-text'),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                value: _logText,
+                onChanged: running
+                    ? null
+                    : (v) => setState(() => _logText = v ?? false),
+                title: const Text(
+                  'Inclure le texte du jeu dans le journal (fichier local, '
+                  'à ne pas publier)',
+                ),
+              ),
               if (_remote) ...[
                 const SizedBox(height: 12),
                 Card(
@@ -343,7 +359,10 @@ class _PreTranslateDialogState extends ConsumerState<PreTranslateDialog> {
                     ),
                   ],
                 ),
-                AiDone(:final report) => _Summary(report: report),
+                AiDone(:final report, :final logPath) => _Summary(
+                  report: report,
+                  logPath: logPath,
+                ),
                 AiFailed(:final message) => Text(
                   message,
                   key: const Key('ai-failed'),
@@ -386,14 +405,30 @@ class _PreTranslateDialogState extends ConsumerState<PreTranslateDialog> {
   }
 }
 
+String _reasonLabel(FailureReason r) => switch (r) {
+  FailureReason.missing => 'absente de la réponse du modèle',
+  FailureReason.newlineCount => 'sauts de ligne différents de la source',
+  FailureReason.controlCodes => 'codes ~Xnn différents de la source',
+  FailureReason.nulChar => 'caractère NUL',
+  FailureReason.mandatoryTerm => 'terme obligatoire du glossaire absent',
+  FailureReason.overBudget => 'trop longue (octets)',
+};
+
 class _Summary extends StatelessWidget {
-  const _Summary({required this.report});
+  const _Summary({required this.report, this.logPath});
 
   final PreTranslateReport report;
+  final String? logPath;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final byReason = <FailureReason, int>{};
+    for (final f in report.failed) {
+      for (final r in f.reasons) {
+        byReason[r] = (byReason[r] ?? 0) + 1;
+      }
+    }
     final lines = <String>[
       '${report.saved} brouillon(s) enregistré(s), ${report.failed.length} '
           'refusé(s), ${report.conflicts} conflit(s).',
@@ -407,6 +442,12 @@ class _Summary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         for (final l in lines) Text(l),
+        if (byReason.isNotEmpty)
+          Text(
+            'Motifs des refus : '
+            '${byReason.entries.map((e) => '${_reasonLabel(e.key)} (${e.value})').join(', ')}.',
+            key: const Key('ai-reasons'),
+          ),
         if (report.stoppedBy != null)
           Text(
             'Arrêté : ${report.stoppedBy!.message} '
@@ -421,6 +462,24 @@ class _Summary extends StatelessWidget {
             'brouillons avant de les valider.',
             key: const Key('ai-over-budget'),
             style: TextStyle(color: scheme.error),
+          ),
+        if (logPath != null)
+          Row(
+            children: [
+              Expanded(
+                child: SelectableText(
+                  'Journal : $logPath',
+                  key: const Key('ai-log-path'),
+                ),
+              ),
+              IconButton(
+                key: const Key('ai-copy-log'),
+                icon: const Icon(Icons.copy),
+                tooltip: 'Copier le chemin du journal',
+                onPressed: () =>
+                    Clipboard.setData(ClipboardData(text: logPath!)),
+              ),
+            ],
           ),
       ],
     );
