@@ -2,6 +2,7 @@
 library;
 
 export 'src/string_table_a_decoder.dart';
+export 'src/string_table_a_encoder.dart';
 export 'src/string_table_file.dart';
 
 /// Nom du paquet (test de fumée).
