@@ -51,7 +51,7 @@ Découpage fait le 2026-10-15 depuis ARCHITECTURE §7, §8.1–8.3, §9, §5.3. 
 - [x] **T22a CLI `mhtk` : `init`, `extract`, `status`** [réel] — `apps/mh_cli/lib/src/{project,init_command,extract_command,status_command}.dart` : projet = dossier `project.json` + `tdb.sqlite` ; `init` (MD5/offset vérifiés, refuse un projet existant), `extract` (critère durci, relançable), `status` (`tdbStatus`, `importedFileIds` dans `mh_tdb`). Tests sur ISO synthétique. **Lancé sur l ISO réelle** (projet dans `out/`, lecture seule de l ISO) : 5 955 fichiers dans `DATA.BIN`, 8 `string_table_a` détectés et importés, 15 051 chaînes (= exploration de T15). `scripts/check.sh apps/mh_cli` = OK. Reste : commit (humain).
 - [x] **T22b CLI `mhtk import`** [fixtures] — `apps/mh_cli/lib/src/import_command.dart` : `--project --from <dossier de dump> --file <id> [--locale] [--status draft] [--config]` ; l'original est relu dans l'ISO du projet, une table sans `string_table_<j>.txt` = table nulle, `importMhtoolsTranslations` (tout ou rien). Un dossier = un fichier (disposition multi-fichiers de mhtools non documentée). Tests : application + `status`, réimport avec autre statut, dossier absent, fichier non importé, statut inconnu, nombre de lignes incohérent. `scripts/check.sh apps/mh_cli` = OK. **Non lancé sur l'ISO réelle** : à valider par l'humain avec un vrai dump (`mhtk import --project out/fr --from <dossier> --file 17`). Reste : commit (humain).
 - [x] **T22c CLI `mhtk budget` et `build`** [réel] — `budget_command.dart` (`--file`, `--policy`, `--min-status draft` ; orig/slot/rebuilt/marge/statut, exit 1 si dépassement), `build_command.dart` (`--target iso`, `--out` défaut `out/MHP3.<locale>.iso`, `--profile`, `--min-status translated` ; exit 0 si `ok`/`nothing_to_build`), `budget_build_support.dart` (`loadValidatedFiles`, dép. `yaml`), `config/validated_files.yaml` créé (liste vide), `buildPatch(onlyFileIds)`. Cibles `plugin`/`delta` refusées. Tests sur ISO synthétique. **Essai réel** (projet dans `out/`, ISO source en lecture seule, script `apps/mh_cli/tool/make_demo_dump.dart`) : fichier 17, un slot raccourci de moitié → `import` 1 traduction, `budget` ok (471 028/471 040 octets, marge 12), `build` ok et vérifié, `out/demo.iso` même taille que la source, octets différents seulement dans le slot du fichier 17 (0x8A7A00C–0x8AECBEA). **Non testé en jeu.** `scripts/check.sh apps/mh_cli` = OK. Reste : commit (humain).
-- [ ] **T23 Build réel minimal** [réel] — quelques chaînes modifiées → ISO copie dans `out/` → vérif ré-extraction (étape 10) ; démarrage en jeu (PPSSPP) par l'humain.
+- [x] **T23 Build réel minimal** [en jeu] — réalisé via T22c : un slot du fichier 17 raccourci de moitié, `mhtk build` → `out/demo.iso`, vérifié par la relecture de l artefact. Testé par l humain dans PPSSPP : le jeu démarre et se lance normalement, aucun plantage.
 
 ## Fait
 
@@ -87,3 +87,10 @@ Voir `docs/DECISIONS/`.
 
 - `scripts/check.sh packages/mh_formats --integration` lancé par l'humain sur l'ISO réelle : OK (round-trip bit à bit de tous les `string_table_a` détectés, ~650 fichiers).
 - **Critère de sortie phase 1 : validé.** Reste : commit (humain). Phase 2 : tâches à découper (ARCHITECTURE.md §12).
+
+## Validation phase 2 en jeu (2026-10-15) [en jeu]
+
+- `out/demo.iso` (fichier 17, un slot raccourci) testé par l'humain dans PPSSPP : le jeu démarre, aucun plantage.
+- Seule anomalie : erreur `80110309` à la validation du personnage (création de sauvegarde). L humain le juge sans rapport avec le patch ; **test témoin non fait** (même geste avec l'ISO d'origine). À refaire si le problème persiste sur d'autres builds.
+- Non vérifié : affichage de la chaîne modifiée en jeu (écran concerné non identifié).
+- **Critère de sortie phase 2 : validé** (ISO patché avec une chaîne modifiée qui démarre). Phase 3 (`mh_studio`, Flutter/FVM absents, deps à proposer) : à découper.
