@@ -11,12 +11,16 @@ import 'tdb_database.dart';
 final class BuildTranslation {
   /// Voir les champs.
   const BuildTranslation({
+    required this.sourceId,
     required this.fileId,
     required this.tableIdx,
     required this.slotIdx,
     required this.sourceHash,
     required this.text,
   });
+
+  /// Id de la ligne `source_string`.
+  final int sourceId;
 
   /// ID DATA.BIN (base 1).
   final int fileId;
@@ -61,6 +65,7 @@ Future<List<BuildTranslation>> eligibleTranslations(
   return [
     for (final r in rows)
       BuildTranslation(
+        sourceId: r.readTable(src).id,
         fileId: r.readTable(src).fileId,
         tableIdx: r.readTable(src).tableIdx,
         slotIdx: r.readTable(src).slotIdx,

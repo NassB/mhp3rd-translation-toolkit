@@ -13,6 +13,9 @@ import 'package:mh_iso/mh_iso.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
 import 'build_patch.dart';
+import 'display_check.dart';
+import 'font_metrics.dart';
+import 'length_profiles_config.dart';
 import 'project.dart';
 import 'validated_files.dart';
 
@@ -82,6 +85,7 @@ Future<BuildRun> runBuild({
   String minStatus = 'translated',
   BudgetPolicy policy = BudgetPolicy.strict,
   Set<int> slotAllowedFileIds = const {},
+  DisplayCheck? display,
 }) async {
   final revision = await tdbRevision(db);
   final result = await buildPatch(
@@ -92,6 +96,7 @@ Future<BuildRun> runBuild({
     minStatus: minStatus,
     policy: policy,
     slotAllowedFileIds: slotAllowedFileIds,
+    display: display,
   );
 
   var status = BuildStatus.ok;
@@ -244,6 +249,8 @@ Future<BuildSummary> runProjectBuild(
   String minStatus = 'translated',
   BudgetPolicy policy = BudgetPolicy.strict,
   String validatedFiles = 'config/validated_files.yaml',
+  String profilesPath = defaultProfiles,
+  String fontMetricsPath = defaultFontMetrics,
 }) async {
   final session = await IsoSession.open(project.isoPath, config);
   final db = TdbDatabase.openFile(project.dbPath);
@@ -262,6 +269,10 @@ Future<BuildSummary> runProjectBuild(
       minStatus: minStatus,
       policy: policy,
       slotAllowedFileIds: loadValidatedFiles(validatedFiles),
+      display: DisplayCheck.tryLoad(
+        profilesPath: profilesPath,
+        metricsPath: fontMetricsPath,
+      ),
     );
     return BuildSummary(
       status: run.status,

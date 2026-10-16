@@ -110,6 +110,7 @@ void main() {
       'slot_bytes': 4096,
       'policy': 'strict',
       'status': 'ok',
+      'warnings': <Object>[],
     });
   });
 }

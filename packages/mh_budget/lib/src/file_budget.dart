@@ -5,6 +5,8 @@
 
 import 'package:mh_binary/mh_binary.dart';
 
+import 'display_budget.dart';
+
 /// Politique du niveau 2 (ARCHITECTURE.md §8.2).
 enum BudgetPolicy {
   /// `taille_reconstruite <= taille_originale` (défaut, release).
@@ -29,8 +31,8 @@ enum BudgetStatus {
   policyNotAllowed,
 }
 
-/// Rapport de budget d'un fichier (ARCHITECTURE.md §8.6, sans `warnings`
-/// qui viendront avec les niveaux 3 et 4).
+/// Rapport de budget d'un fichier (ARCHITECTURE.md §8.6 ; `warnings` : niveaux 3 et 4,
+/// jamais bloquants).
 final class BudgetReport {
   /// Voir les champs.
   const BudgetReport({
@@ -40,6 +42,7 @@ final class BudgetReport {
     required this.slotBytes,
     required this.policy,
     required this.status,
+    this.warnings = const [],
   });
 
   /// ID de fichier DATA.BIN (base 1).
@@ -59,6 +62,21 @@ final class BudgetReport {
 
   /// Verdict.
   final BudgetStatus status;
+
+  /// Avertissements d'affichage (niveaux 3 et 4) : informatifs, ils ne
+  /// changent jamais [status].
+  final List<DisplayWarning> warnings;
+
+  /// Copie avec [warnings] remplacés.
+  BudgetReport withWarnings(List<DisplayWarning> warnings) => BudgetReport(
+        fileId: fileId,
+        origBytes: origBytes,
+        rebuiltBytes: rebuiltBytes,
+        slotBytes: slotBytes,
+        policy: policy,
+        status: status,
+        warnings: List.unmodifiable(warnings),
+      );
 
   /// Taille reconstruite alignée sur le secteur.
   int get alignedBytes => alignUp(rebuiltBytes, sectorSize);
@@ -104,6 +122,7 @@ final class BudgetReport {
         'slot_bytes': slotBytes,
         'policy': policy.name,
         'status': status.name,
+        'warnings': [for (final w in warnings) w.toJson()],
       };
 }
 

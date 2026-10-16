@@ -19,6 +19,8 @@ import 'package:mh_databin/mh_databin.dart';
 import 'package:mh_formats/mh_formats.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
+import 'display_check.dart';
+
 /// Lit le slot d'origine **déchiffré** d'une entrée (fourni par l'appelant).
 typedef PlainSlotReader = Uint8List Function(DataBinEntry entry);
 
@@ -49,7 +51,8 @@ final class BuildResult {
 /// Construit le patch des traductions de [locale] de statut [minStatus] ou
 /// plus (`translated` : nightly ; `reviewed` : release).
 ///
-/// [onlyFileIds] restreint la sélection (rapport de budget d'un fichier).
+/// [onlyFileIds] restreint la sélection (rapport de budget d'un fichier). [display]
+/// ajoute aux rapports les avertissements d'affichage (jamais bloquants).
 /// Tout ou rien : si un fichier dépasse son budget, [BuildResult.patch] est
 /// `null` et les rapports de tous les fichiers sont renvoyés. Lève [TdbError]
 /// si la base ne correspond pas à l'original (SHA-1, position inexistante).
@@ -62,6 +65,7 @@ Future<BuildResult> buildPatch({
   BudgetPolicy policy = BudgetPolicy.strict,
   Set<int> slotAllowedFileIds = const {},
   Set<int>? onlyFileIds,
+  DisplayCheck? display,
 }) async {
   final all = await eligibleTranslations(
     db,
@@ -98,8 +102,14 @@ Future<BuildResult> buildPatch({
       policy: policy,
       slotAllowedFileIds: slotAllowedFileIds,
     );
-    reports.add(report);
-    if (!report.isOk) continue;
+    reports.add(
+      display == null
+          ? report
+          : report.withWarnings(
+              await display.warningsFor(db, fileId, byFile[fileId]!),
+            ),
+    );
+    if (!report.isOk) continue; // the warnings never block
 
     final w = ByteWriter()
       ..bytes(tables)

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:mh_binary/mh_binary.dart';
+import 'package:mh_budget/mh_budget.dart';
 import 'package:mh_build/mh_build.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
@@ -9,7 +10,8 @@ import 'budget_build_support.dart';
 const String _usage = 'usage: mhtk build --project <dir> --target iso '
     '[--out out/MHP3.<locale>.iso] [--policy strict|slot] '
     '[--min-status translated] [--profile nightly] [--config ...] '
-    '[--validated config/validated_files.yaml]';
+    '[--validated config/validated_files.yaml] '
+    '[--profiles config/profiles.yaml] [--metrics config/font_metrics.yaml]';
 
 /// `mhtk build` : écrit les traductions éligibles dans une copie de l'ISO
 /// (l'ISO source n'est jamais modifiée). Retourne 0 si le build est `ok` ou
@@ -28,6 +30,8 @@ Future<int> runBuildCommand(
     'profile',
     'config',
     'validated',
+    'profiles',
+    'metrics',
   });
   final policy = parsePolicy(f?['policy'] ?? 'strict');
   if (f == null || f['project'] == null || policy == null) {
@@ -65,6 +69,10 @@ Future<int> runBuildCommand(
       slotAllowedFileIds: loadValidatedFiles(
         f['validated'] ?? defaultValidatedFiles,
       ),
+      display: DisplayCheck.tryLoad(
+        profilesPath: f['profiles'] ?? defaultProfiles,
+        metricsPath: f['metrics'] ?? defaultFontMetrics,
+      ),
     );
     out
       ..writeln('status:   ${run.status}')
@@ -74,6 +82,13 @@ Future<int> runBuildCommand(
         '  file ${r.fileId}: ${r.status.name} '
         '(${r.rebuiltBytes}/${r.origBytes} bytes, slot ${r.slotBytes})',
       );
+      final w = summarizeDisplayWarnings(r.warnings);
+      if (w.isNotEmpty) {
+        out.writeln(
+          '    display warnings (not blocking): '
+          '${w.entries.map((e) => '${e.key} ${e.value}').join(', ')}',
+        );
+      }
     }
     for (final e in run.verifyErrors) {
       err.writeln('verify: $e');

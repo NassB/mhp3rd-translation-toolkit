@@ -8,6 +8,7 @@ import 'package:mh_cli/mh_cli.dart';
 import 'package:mh_databin/mh_databin.dart';
 import 'package:mh_formats/mh_formats.dart';
 import 'package:mh_iso/mh_iso.dart';
+import 'package:mh_tdb/mh_tdb.dart';
 import 'package:test/test.dart';
 
 import '../../../packages/mh_iso/test/support/iso_builder.dart';
@@ -59,6 +60,8 @@ void main() {
   late Directory tmp;
   late String project;
   late String profiles;
+  late String config;
+  late String isoPath;
 
   setUp(() async {
     tmp = Directory.systemTemp.createTempSync('mhtk_profile');
@@ -66,9 +69,9 @@ void main() {
     final iso = buildIso([FakeFile(dataBinIsoPath, dataLba, dataBin.length)]);
     final start = dataLba * sectorSize;
     iso.setRange(start, start + dataBin.length, dataBin);
-    final isoPath = '${tmp.path}/game.iso';
+    isoPath = '${tmp.path}/game.iso';
     File(isoPath).writeAsBytesSync(iso);
-    final config = '${tmp.path}/versions.yaml';
+    config = '${tmp.path}/versions.yaml';
     File(config).writeAsStringSync(
       '- id: TEST\n'
       '  platform: psp\n'
@@ -157,6 +160,72 @@ void main() {
         await profile(['show', '--project', project, '--file', '1']);
     expect(out, contains('(none): 2'));
     expect(out, contains('menu_label: 1'));
+  });
+
+  test('the build reports display warnings without blocking', () async {
+    final metrics = '${tmp.path}/font_metrics.yaml';
+    File(metrics).writeAsStringSync(
+      'contexts:\n  - {id: px7, advance_px: 7}\n',
+    );
+    final tight = '${tmp.path}/tight.yaml';
+    File(tight).writeAsStringSync(
+      'profiles:\n  tight: {max_px: 14, max_lines: 1, font_context: px7}\n',
+    );
+    final sink = StringBuffer();
+    expect(
+      await runProfile(
+        [
+          'set',
+          '--project',
+          project,
+          '--file',
+          '1',
+          '--profile',
+          'tight',
+          '--profiles',
+          tight,
+        ],
+        sink,
+        sink,
+      ),
+      0,
+    );
+    final db = TdbDatabase.openFile(Project.load(project).dbPath);
+    final repo = TranslationRepository(db, locale: 'fr');
+    final first = (await repo.slots(1)).first;
+    await repo.saveTranslation(
+      sourceId: first.sourceId,
+      text: 'abcdef\nsecond',
+      status: 'translated',
+    );
+    await db.close();
+
+    final out = StringBuffer();
+    final err = StringBuffer();
+    final code = await runBuildCommand(
+      [
+        '--project',
+        project,
+        '--out',
+        '${tmp.path}/out/x.iso',
+        '--config',
+        config,
+        '--profiles',
+        tight,
+        '--metrics',
+        metrics,
+      ],
+      out,
+      err,
+    );
+    expect(code, 0, reason: '$out $err');
+    expect(out.toString(), contains('status:   ok'));
+    expect(
+      out.toString(),
+      contains(
+        'display warnings (not blocking): px_overflow 2, lines_overflow 1',
+      ),
+    );
   });
 
   test('unknown profile, unknown file and bad usage', () async {

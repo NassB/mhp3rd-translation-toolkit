@@ -48,6 +48,7 @@ BuildSummary summary(
   String status, {
   BudgetStatus file = BudgetStatus.ok,
   List<String> errors = const [],
+  List<DisplayWarning> warnings = const [],
 }) => BuildSummary(
   status: status,
   buildId: 7,
@@ -60,6 +61,7 @@ BuildSummary summary(
       slotBytes: 2048,
       policy: BudgetPolicy.strict,
       status: file,
+      warnings: warnings,
     ),
   ],
   verifyErrors: errors,
@@ -143,6 +145,36 @@ void main() {
     await t.pumpAndSettle();
     expect(find.byKey(const Key('build-progress')), findsNothing);
     expect(find.byKey(const Key('build-result')), findsOneWidget);
+  });
+
+  testWidgets('display warnings are shown, in French, as not blocking', (
+    t,
+  ) async {
+    const w = DisplayWarning(
+      tableIdx: 0,
+      slotIdx: 1,
+      issue: DisplayIssue(DisplayWarningKind.pxOverflow, 212, max: 196),
+    );
+    final fake = FakeRunner()
+      ..result = summary(BuildStatus.ok, warnings: [w, w]);
+    await t.pumpWidget(host(fake));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('run-build')));
+    await t.pumpAndSettle();
+    expect(
+      find.textContaining('non bloquants) : largeur dépassée (2)'),
+      findsOneWidget,
+    );
+    expect(find.text('ISO écrit et vérifié'), findsOneWidget);
+  });
+
+  testWidgets('no warning line when there is no warning', (t) async {
+    final fake = FakeRunner()..result = summary(BuildStatus.ok);
+    await t.pumpWidget(host(fake));
+    await t.pumpAndSettle();
+    await t.tap(find.byKey(const Key('run-build')));
+    await t.pumpAndSettle();
+    expect(find.byKey(const Key('display-warnings-17')), findsNothing);
   });
 
   testWidgets('a successful build shows the report', (t) async {
