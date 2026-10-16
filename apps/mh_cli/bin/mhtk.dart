@@ -15,6 +15,7 @@ commands:
   build    write the translations into a copy of the ISO
   calibrate  fill a file with test strings to calibrate the in-game display
   pretranslate  draft translations with a (local) language model
+  profile  length profiles: list, show, assign to a file or table
   status   show the project database content''';
 
 Future<void> main(List<String> args) async {
@@ -39,6 +40,8 @@ Future<void> main(List<String> args) async {
       final sub = ProcessSignal.sigint.watch().listen((_) => cancel.cancel());
       exitCode = await runPretranslate(rest, stdout, stderr, cancel: cancel);
       await sub.cancel();
+    case 'profile':
+      exitCode = await runProfile(rest, stdout, stderr);
     case 'status':
       exitCode = await runStatus(rest, stdout, stderr);
     default:

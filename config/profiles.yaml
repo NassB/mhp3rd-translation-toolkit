@@ -1,0 +1,39 @@
+# Profils de longueur (docs/ARCHITECTURE.md §8.4). Un profil décrit un type
+# d'écran : largeur maximale d'une ligne en pixels de la PSP (max_px), nombre
+# de lignes (max_lines), contexte de police (font_context : un id de
+# config/font_metrics.yaml) et pagination.
+#
+# 0 veut dire « non mesuré » (et font_context vide : pas mesuré non plus) : un
+# profil sans limite ne produit AUCUN avertissement. Ne remplir une valeur
+# qu'après l'avoir mesurée en jeu avec l'ISO de calibrage (docs/CALIBRATION.md,
+# `mhtk calibrate`) ; ne rien deviner.
+#
+# Observations déjà faites (T36, docs/CALIBRATION.md §5) : les listes de menu
+# du village et les dialogues de Character Creation ont un pas de 7 px, la
+# fenêtre de message du village 6 px, un bandeau de Character Creation 9 px ;
+# aucune limite de largeur n'est encore mesurée. L'association écran <-> profil
+# est faite par fichier, table ou chaîne (`mhtk profile`).
+version: 1
+
+profiles:
+  menu_label:
+    description: "libellés de menu (listes, boutons)"
+    max_px: 0
+    max_lines: 1
+  item_name:
+    description: "noms d'objets (boutique, forge, inventaire)"
+    max_px: 0
+    max_lines: 1
+  item_description:
+    description: "descriptions d'objets (boutique, forge)"
+    max_px: 0
+    max_lines: 3
+  quest_title:
+    description: "titres dans la liste de quêtes"
+    max_px: 0
+    max_lines: 1
+  dialogue:
+    description: "fenêtres de message et dialogues"
+    max_px: 0
+    max_lines: 3
+    paginated: true

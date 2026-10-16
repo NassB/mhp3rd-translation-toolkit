@@ -12,6 +12,7 @@ export 'src/import_command.dart';
 export 'src/index_command.dart';
 export 'src/init_command.dart';
 export 'src/pretranslate_command.dart';
+export 'src/profile_command.dart';
 export 'src/status_command.dart';
 
 /// Nom du paquet (test de fumée).

@@ -94,6 +94,7 @@ dart run apps/mh_cli/bin/mhtk.dart build --project out/fr --target iso          
 dart run apps/mh_cli/bin/mhtk.dart pretranslate --project out/fr --file 2819 --model <id> --endpoint http://localhost:1234/v1 --dry-run   # AI drafts via a local LLM (LM Studio); game text never leaves the machine by default
 dart run apps/mh_cli/bin/mhtk.dart status --project out/fr                   # files, strings, translations by status
 dart run apps/mh_cli/bin/mhtk.dart calibrate --project out/calib --file 17,2813,2814,2815,2816,2817,2818,2819   # fill files with test strings to calibrate the in-game display (docs/CALIBRATION.md)
+dart run apps/mh_cli/bin/mhtk.dart profile list                                      # length profiles (config/profiles.yaml); `profile set --project out/fr --file 17 --table 3 --profile menu_label` assigns one
 ```
 
 `index` prints the file count, the largest slot and the sum of slots.

@@ -4,6 +4,7 @@ library;
 export 'src/build_queries.dart';
 export 'src/glossary_repository.dart';
 export 'src/import_mhtools.dart';
+export 'src/profile_repository.dart';
 export 'src/status_queries.dart';
 export 'src/tables/builds.dart';
 export 'src/tables/game_files.dart';
