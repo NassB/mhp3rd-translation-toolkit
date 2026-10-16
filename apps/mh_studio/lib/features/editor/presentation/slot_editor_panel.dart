@@ -4,6 +4,7 @@ import 'package:mh_budget/mh_budget.dart' show measuredLatinChars;
 import 'package:mh_formats/mh_formats.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
+import '../../display/presentation/display_panel.dart';
 import '../../glossary/application/glossary_providers.dart';
 import '../../memory/application/memory_providers.dart';
 import '../application/file_editor.dart';
@@ -202,6 +203,8 @@ class _SlotEditorPanelState extends ConsumerState<SlotEditorPanel> {
               const SizedBox(height: 8),
               LintList(issues: issues),
             ],
+            const SizedBox(height: 8),
+            DisplayPanel(fileId: widget.fileId, slot: slot, text: _currentText),
             if (suggestions.isNotEmpty) ...[
               const SizedBox(height: 12),
               Text('Mémoire de traduction', style: theme.textTheme.labelLarge),

@@ -93,6 +93,8 @@ void main() {
     List<GlossaryTermRow> glossary = const [],
     TranslationMemory? memory,
   }) async {
+    await t.binding.setSurfaceSize(const Size(1100, 1000));
+    addTearDown(() => t.binding.setSurfaceSize(null));
     await t.pumpWidget(
       ProviderScope(
         overrides: overrides(glossary: glossary, memory: memory),
