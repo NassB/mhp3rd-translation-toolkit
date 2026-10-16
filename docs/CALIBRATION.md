@@ -70,3 +70,19 @@ Deux écrans du menu « Character Creation » (fichier 17, première version de 
 - **Couleur** : un code `~Cxx` colore bien le texte en orange (étiquette entre deux flèches de sélection).
 
 Il manque encore : les motifs `i`/`W`/`M` (chasse fixe ou proportionnelle ?), la largeur maximale avant débordement ou retour à la ligne, et les autres types d'écran (menus, boutique, quêtes, noms d'objets).
+
+## 5. Relevés de la seconde série (2026-10-16, ISO `calib2`, étiquettes `[#numéro]`)
+
+Quatre captures (écran « Character Creation » : liste et dialogues ; village : liste de menu et fenêtre de message). Les pas ont été mesurés **sur les pixels des captures** (autocorrélation de la colonne d'encre, écran = 1,77 × la PSP) :
+
+| contexte | pas mesuré | en pixels PSP |
+|---|---|---|
+| dialogue sombre et listes de « Character Creation » (alphabet, `i`, `W`, `M`, règle) | 12,3 px d'écran | **7** |
+| liste de menu du village (`M`, `i`, `ab cd`) | 12,3 px d'écran | **7** |
+| fenêtre de message du village (en bas) | 10,7 px d'écran | **6** |
+| bandeau blanc de « Character Creation » (ligne de `i`) | 16 px d'écran | **9** |
+
+- **Chasse fixe confirmée dans chaque contexte** : `i`, `m`, `w`, `W`, `M`, les chiffres, la ponctuation et l'espace ont le **même pas** (la ligne d'alphabet complet et la ligne de `i` du même dialogue donnent 7 px). La largeur d'un texte latin est donc **nombre de caractères × pas du contexte**.
+- Le **pas dépend de l'élément d'interface** (6, 7 ou 9 px selon la fenêtre), pas du fichier : il faut un pas par type d'écran.
+- **Débordement** : la fenêtre de message du village **ne coupe pas** le texte (une ligne de 39 caractères déborde de la boîte, ≈ 234 px de large) ; les listes de menu **coupent** au bord de la boîte ; les bandeaux de « Character Creation » **centrent** le texte, qui déborde alors des deux côtés (l'étiquette passe sous l'icône de gauche).
+- Aucun **retour à la ligne automatique** observé : les lignes multiples correspondent aux sauts de ligne de la source.
