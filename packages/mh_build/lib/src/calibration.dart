@@ -157,6 +157,7 @@ final class CalibrationRow {
     required this.sourceBytes,
     required this.bytes,
     required this.newlines,
+    required this.lineChars,
   });
 
   /// Numéro de la chaîne (identifiant dans la base), repris dans l'étiquette.
@@ -171,6 +172,10 @@ final class CalibrationRow {
 
   /// Nombre de sauts de ligne (identique à la source).
   final int newlines;
+
+  /// Nombre de caractères affichés par ligne (codes `~Xnn` et marqueurs
+  /// `%d` non comptés) : la largeur prédite est ce nombre × le pas du contexte.
+  final List<int> lineChars;
 }
 
 /// Résultat de [applyCalibration].
@@ -250,6 +255,10 @@ Future<CalibrationReport> applyCalibration({
         sourceBytes: _bytes(s.sourceText),
         bytes: _bytes(text),
         newlines: '\n'.allMatches(text).length,
+        lineChars: [
+          for (final l in text.split('\n'))
+            l.replaceAll(_keep, '').runes.length,
+        ],
       ),
     );
   }
@@ -285,14 +294,15 @@ String calibrationMarkdown(CalibrationReport r) {
     ..writeln()
     ..writeln(
       '| étiquette | table.slot | motif | octets source | octets test | '
-      'sauts de ligne |',
+      'sauts de ligne | caractères par ligne |',
     )
-    ..writeln('|---|---|---|---|---|---|');
+    ..writeln('|---|---|---|---|---|---|---|');
   for (final row in r.rows) {
     b.writeln(
       '| ${calibrationTag(row.number)} | ${row.tableIdx}.${row.slotIdx} | '
       '${row.pattern} | '
-      '${row.sourceBytes} | ${row.bytes} | ${row.newlines} |',
+      '${row.sourceBytes} | ${row.bytes} | ${row.newlines} | '
+      '${row.lineChars.join(' / ')} |',
     );
   }
   return b.toString();

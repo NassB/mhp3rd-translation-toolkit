@@ -144,6 +144,20 @@ void main() {
       expect(RegExp(r'[぀-ヿ㐀-鿿]').hasMatch(md), isFalse);
     });
 
+    test('the report gives the characters per line, codes not counted',
+        () async {
+      final r = await applyCalibration(repo: repo, fileId: 17);
+      final row = r.rows.firstWhere((x) => x.slotIdx == 1);
+      // '~C02ありがとう\nございます。~C00' : 5 + 6 caractères sources (15 + 18 octets)
+      expect(row.lineChars, hasLength(2));
+      for (final n in row.lineChars) {
+        expect(n, greaterThan(0));
+      }
+      final md = calibrationMarkdown(r);
+      expect(md, contains('| caractères par ligne |'));
+      expect(md, contains('| ${row.lineChars.join(' / ')} |'));
+    });
+
     test('is repeatable', () async {
       await applyCalibration(repo: repo, fileId: 17);
       final again = await applyCalibration(repo: repo, fileId: 17);
