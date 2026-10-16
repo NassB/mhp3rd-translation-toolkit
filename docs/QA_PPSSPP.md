@@ -104,3 +104,20 @@ Protocole :
 | Date | ISO / build | Écrans testés | Résultat | Suite |
 |---|---|---|---|---|
 | 2026-10-16 | `out/MHP3.calib.iso` puis `calib2` | création de personnage, village | accents et ponctuation affichés ; police à chasse fixe de 6, 7 ou 9 px selon l'élément (docs/CALIBRATION.md §4-5) | mesurer des limites par écran |
+
+## 10. Automatisation des captures : étude de faisabilité (T44, 2026-10-16)
+
+**Verdict : semi-automatisable avec l'installation actuelle (PPSSPP Gold 1.20.2), sans `PPSSPPHeadless`.** Une visite scriptée (lancer l'ISO, envoyer des touches, capturer la fenêtre) fonctionne ; l'accès direct à un écran donné et la comparaison automatique d'images restent à construire.
+
+| Brique | Résultat |
+|---|---|
+| `PPSSPPHeadless` | **Absent** du paquet Gold (`PPSSPPWindows.exe`, `PPSSPPWindows64.exe`, `assets/`). C'est l'exécutable de test de PPSSPP (compilé depuis les sources avec CMake, `-DHEADLESS=ON`). D'après son code source il accepte `--graphics=software\|vulkan`, `--timeout-wall=N`, `--root`, `--compare`, `--screenshot-save=FICHIER` (png/bmp), `--state=FICHIER` (charge un état), `--resolution-scale=N`. **Non essayé** (pas de binaire, pas de chaîne de compilation installée). Il n'y a pas d'arrêt après N images : seulement un délai en secondes, et il ne reçoit pas de touches : il ne conviendrait que **combiné à des états de sauvegarde** (§3). |
+| Débogueur WebSocket de PPSSPP | **Fonctionne** : avec `RemoteDebuggerOnStartup = True` (section `[General]` de `ppsspp.ini`), PPSSPP écoute sur un port local **aléatoire** (49607, 62944… lu avec `Get-NetTCPConnection -State Listen -OwningProcess <pid>`), sous-protocole `debugger.ppsspp.org`, chemin `/debugger`. `game.status` répond (jeu chargé) ; `input.buttons.press` (`cross`, `start`…, durée en images) **fonctionne** : deux appuis ont fait passer la vidéo d'intro au titre. |
+| Capture par le débogueur (`gpu.buffer.screenshot`) | **Échec** : « Could not download output », après `cpu.stepping`, avec le moteur graphique par défaut (D3D11) et un essai de `GraphicsBackend = 0` (non vérifié que le réglage ait été pris en compte). Piste non explorée : état d'arrêt du GPU (GE) ou moteur Vulkan. |
+| Capture de la fenêtre (`PrintWindow`) | **Fonctionne**, même fenêtre cachée : image de la zone cliente en **960×544** (rendu ×2 = 2 × 480×272), couleurs correctes. Script : `apps/mh_cli/tool/ppsspp_window_capture.ps1`. `CopyFromScreen` est à éviter : il capture ce qui est devant la fenêtre. |
+| Navigation | `apps/mh_cli/tool/ppsspp_capture.dart` (`--port`, `--press cross,start`, `--shots 0`) envoie les touches. Pour atteindre un écran précis il faut une **suite de touches** (attentes comprises) ou un état de sauvegarde ; le chargement d'un état depuis la ligne de commande de la version graphique **n'a pas été vérifié**. Un état contient les textes déjà chargés en mémoire : à refaire après chaque changement d'ISO. |
+| Comparaison d'images | Non faite. Pour la grille (§5), une capture + une règle `ruler` suffisent à lire les caractères visibles ; l'autocorrélation utilisée en T36 (docs/CALIBRATION.md §5) donne le pas sans compter à la main. |
+
+**Isolation utilisée pour l'essai** : une copie portable de PPSSPP dans `out/ppsspp_test/` (exécutable + `assets/`, sans `installed.txt`, donc ses propres réglages dans `memstick/`) avec `ppsspp.ini` : `[General] FirstRun = False`, `CheckForNewVersion = False`, `RemoteDebuggerOnStartup = True`, `[Sound] Enable = False`. L'installation et les réglages de l'humain (`D:\Documents\PPSSPP`) n'ont pas été touchés.
+
+**Suite possible** (à demander) : un script de visite `ppsspp_tour.dart` (lancer, attendre, séquence de touches par écran clé, capture de fenêtre, rognage de la zone, mesure du pas par autocorrélation) alimentant la grille §5. Les captures et les images du jeu restent dans `out/`, jamais dans le dépôt.
