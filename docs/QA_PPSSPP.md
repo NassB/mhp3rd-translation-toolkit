@@ -139,3 +139,27 @@ dart run apps/mh_cli/tool/ppsspp_tour.dart --exe out/ppsspp_test/PPSSPPWindows64
 - `start` n'est **pas** pris en compte au titre ; `circle` (maintenu 45 images) l'est, mais pas toujours du premier coup : d'où `until`. Chemin automatisé : titre → `circle` → GAME MENU → `circle` → Character Creation, en ≈ 1 min 30 depuis le lancement à froid (le chargement du jeu domine).
 - **Mesure automatique sur Character Creation** : bandeau blanc **9,00 px** (PSP), bandes grises **7,00 px**, avec une confiance de 0,65 à 0,90 : **identique aux mesures manuelles de T36** (docs/CALIBRATION.md §5). Une bande « 5,00 px » à y = 128-144 est le décor du titre : les bandes de texte sont à repérer par leur pas plausible (6, 7 ou 9) et leur confiance.
 - Limites : seuls les écrans atteignables **sans sauvegarde** sont couverts (titre, GAME MENU, Character Creation). Les écrans de la boutique, de la forge, des quêtes ou du village exigent un **fichier de sauvegarde** dans `memstick/PSP/SAVEDATA/` de la copie portable (celui de l'humain : **à copier par lui**, je ne l'ai pas touché) et une suite de touches propre à chaque écran. Les seuils de luminance sont des repères empiriques propres à ces trois écrans.
+
+### 10.2 Visites par états de sauvegarde (boutique, forge, quêtes, dialogues)
+
+**Constat (2026-10-16)** : les dossiers de sauvegarde `ULJM05800` de PPSSPP de l'humain (`D:\Documents\PPSSPP`, `C:\Users\touns\PPSSPPData`, `D:\PSP`) sont **vides** et il n'existe **aucun état** pour ce jeu : aucune partie avancée à copier. Atteindre la boutique, la forge ou la liste de quêtes exige donc de **jouer** (création du personnage avec saisie du nom, scènes, village), ce que l'outil n'automatise pas.
+
+**Ce qui est validé** : `ppsspp_tour --state FICHIER.ppst` lance le jeu **directement dans l'écran enregistré** (l'état de Character Creation est restauré en moins de 10 s et donne les mêmes mesures : 9,00 px et 7,00 px). Procédure, pour chaque écran à relever :
+
+1. Lancer la copie portable à la main, avec l'ISO de calibrage : `out\ppsspp_test\PPSSPPWindows64.exe out\MHP3.calib2.iso` (ses réglages et ses sauvegardes sont dans `out\ppsspp_test\memstick\`, sans toucher à l'installation de l'humain).
+2. Jouer jusqu'à l'écran voulu (boutique ouverte, forge, liste de quêtes, fenêtre de message…) ; **les textes affichés doivent être des chaînes de calibrage `[#numéro]`** (ISO `calib2`), sinon l'écran montre le japonais d'origine.
+3. Appuyer sur **F2** (enregistre l'état dans l'emplacement courant ; fichier `memstick\PSP\PPSSPP_STATE\ULJM05800_1.02_0.ppst`) puis copier ce fichier vers `out\ppsspp_states\<ecran>.ppst` (`boutique`, `forge`, `quetes`…) avant de refaire un état pour l'écran suivant.
+4. Mesurer tous les états :
+
+```bash
+for f in out/ppsspp_states/*.ppst; do
+  n=$(basename "$f" .ppst)
+  dart run apps/mh_cli/tool/ppsspp_tour.dart --exe out/ppsspp_test/PPSSPPWindows64.exe \
+    --iso out/MHP3.calib2.iso --state "$f" \
+    --script apps/mh_cli/tool/tours/state_screen.json --out "out/ppsspp_tour/$n"
+done
+```
+
+Chaque dossier contient la capture (`00_screen.png`) et `report.md` (pas par ligne de texte). Reporter les pas dans `config/font_metrics.yaml` (contextes) et, une fois les limites de largeur lues sur les règles `ruler`, dans `config/profiles.yaml` (§4).
+
+**Limites** : un état contient les **textes déjà chargés en mémoire** : refaire les états quand l'ISO ou les chaînes de calibrage changent ; `--debugger=PORT` n'a pas fonctionné comme prévu (le port de connexion était différent) : le port reste lu dans `netstat`.

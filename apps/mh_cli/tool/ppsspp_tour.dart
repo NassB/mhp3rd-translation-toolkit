@@ -7,7 +7,8 @@
 //       --exe out/ppsspp_test/PPSSPPWindows64.exe --iso out/MHP3.calib2.iso \
 //       --script apps/mh_cli/tool/tours/boot.json --out out/ppsspp_tour
 //
-// Option `--port N` : se connecter à une instance déjà lancée (sans la
+// Options : `--state FICHIER.ppst` (charge un état de sauvegarde au lancement),
+// `--port N` : se connecter à une instance déjà lancée (sans la
 // fermer). Windows seulement (PrintWindow). Les captures sont des images du
 // jeu : elles restent dans `out/` (ignoré par git).
 //
@@ -25,7 +26,7 @@ import 'dart:io';
 import 'ppsspp/image_analysis.dart';
 
 Future<void> main(List<String> args) async {
-  String? exe, iso, script, portArg;
+  String? exe, iso, script, portArg, state;
   var outDir = 'out/ppsspp_tour';
   var keepOpen = false;
   for (var i = 0; i < args.length; i++) {
@@ -38,6 +39,8 @@ Future<void> main(List<String> args) async {
         script = args[++i];
       case '--out':
         outDir = args[++i];
+      case '--state':
+        state = args[++i];
       case '--port':
         portArg = args[++i];
       case '--keep-open':
@@ -61,7 +64,10 @@ Future<void> main(List<String> args) async {
   } else {
     proc = await Process.start(
       File(exe!).absolute.path,
-      [File(iso!).absolute.path],
+      [
+        File(iso!).absolute.path,
+        if (state != null) '--state=${File(state).absolute.path}',
+      ],
       workingDirectory: File(exe).absolute.parent.path,
       mode: ProcessStartMode.detached,
     );
