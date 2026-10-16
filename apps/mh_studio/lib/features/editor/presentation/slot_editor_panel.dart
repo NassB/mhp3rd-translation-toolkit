@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mh_budget/mh_budget.dart' show measuredLatinChars;
 import 'package:mh_formats/mh_formats.dart';
 import 'package:mh_tdb/mh_tdb.dart';
 
@@ -9,6 +10,9 @@ import '../application/file_editor.dart';
 import '../application/file_editor_state.dart';
 import 'lint_list.dart';
 import 'tokenized_text.dart';
+
+/// Caractères observés à l'écran (T36/T38) : les autres sont signalés.
+final _lintOptions = LintOptions(displayableChars: measuredLatinChars());
 
 /// Panneau source | cible de la chaîne sélectionnée.
 class SlotEditorPanel extends ConsumerStatefulWidget {
@@ -112,6 +116,7 @@ class _SlotEditorPanelState extends ConsumerState<SlotEditorPanel> {
             source: slot.sourceText,
             target: _currentText,
             glossary: entries,
+            options: _lintOptions,
           )
         : const <LintIssue>[];
 

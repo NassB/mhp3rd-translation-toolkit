@@ -410,6 +410,7 @@ String _reasonLabel(FailureReason r) => switch (r) {
   FailureReason.newlineCount => 'sauts de ligne différents de la source',
   FailureReason.controlCodes => 'codes ~Xnn différents de la source',
   FailureReason.nulChar => 'caractère NUL',
+  FailureReason.invisibleChar => 'caractère invisible ou de contrôle',
   FailureReason.mandatoryTerm => 'terme obligatoire du glossaire absent',
   FailureReason.overBudget => 'trop longue (octets)',
 };

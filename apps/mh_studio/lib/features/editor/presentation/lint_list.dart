@@ -15,6 +15,11 @@ String lintMessage(LintIssue i) => switch (i.kind) {
   LintKind.mandatoryTerm => 'Terme obligatoire absent : « ${i.detail} ».',
   LintKind.suggestedTerm => 'Terme du glossaire absent : « ${i.detail} ».',
   LintKind.frenchSpacing => 'Espace insécable attendue avant « ${i.detail} ».',
+  LintKind.invisibleChar =>
+    'Caractère invisible ou de contrôle interdit (${i.detail}).',
+  LintKind.residualJapanese =>
+    'Japonais laissé dans la traduction (${i.detail} caractère(s)).',
+  LintKind.unmeasuredChar => 'Affichage en jeu non vérifié pour : ${i.detail}.',
 };
 
 /// Liste des constats du linter pour la chaîne en cours d'édition.

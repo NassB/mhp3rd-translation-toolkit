@@ -416,6 +416,31 @@ void main() {
     expect(client.requests[1].items.single['fix'], contains('« Chasseur »'));
   });
 
+  test('invisible characters trigger a retry, then a dedicated refusal',
+      () async {
+    final retried = ScriptedClient((r, call) {
+      return call == 0
+          ? answer(r, {...dict, hunter: 'Le chasseur\u200B va\ten forêt.'})
+          : answer(r, dict);
+    });
+    final ok = await run(retried);
+    expect(ok.saved, 4);
+    expect(
+      retried.requests[1].items.single['fix'],
+      allOf(contains('U+0009'), contains('U+200B')),
+    );
+    expect((await stored())[hunter]!.text, dict[hunter]);
+  });
+
+  test('invisible characters returned twice are refused', () async {
+    final client = ScriptedClient(
+      (r, _) => answer(r, {...dict, hunter: 'Le chasseur\u200B va en forêt.'}),
+    );
+    final report = await run(client);
+    expect(report.failed.single.reasons, {FailureReason.invisibleChar});
+    expect((await stored())[hunter], isNull);
+  });
+
   test('a string failing twice is left untouched; the others are saved',
       () async {
     final client = ScriptedClient(

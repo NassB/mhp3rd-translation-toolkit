@@ -50,6 +50,10 @@ enum FailureReason {
   /// Contient un octet NUL.
   nulChar,
 
+  /// Contient un caractère invisible ou de contrôle absent de la source
+  /// (U+200B, tabulation…, voir `LintKind.invisibleChar`).
+  invisibleChar,
+
   /// Terme obligatoire du glossaire absent.
   mandatoryTerm,
 
@@ -283,9 +287,17 @@ _Check _validate(
       case LintKind.mandatoryTerm:
         reasons.add(FailureReason.mandatoryTerm);
         hints.add('emploie le terme obligatoire « ${i.detail} »');
+      case LintKind.invisibleChar:
+        reasons.add(FailureReason.invisibleChar);
+        hints.add(
+          'supprime les caractères invisibles ou de contrôle (${i.detail}) : '
+          'ni tabulation ni espace de largeur nulle',
+        );
       case LintKind.edgeWhitespace:
       case LintKind.suggestedTerm:
       case LintKind.frenchSpacing:
+      case LintKind.residualJapanese:
+      case LintKind.unmeasuredChar:
         warnings++;
     }
   }

@@ -126,11 +126,99 @@ void main() {
         ];
     expect(details('Quoi?'), ['?']);
     expect(details('Quoi ?'), ['?']); // espace ordinaire : pas insécable
-    expect(details('Quoi ?'), isEmpty);
+    expect(details('Quoi\u00A0?'), isEmpty);
     expect(details('Quoi !'), isEmpty);
     expect(details('Voici :\nsuite'), [':']);
-    expect(details('Vraiment ?!'), isEmpty); // ponctuation doublée
+    expect(details('Vraiment\u00A0?!'), isEmpty); // ponctuation doublée
     expect(details('?début'), isEmpty); // pas de caractère avant
+  });
+
+  test('invisible and control characters absent from the source are errors',
+      () {
+    List<LintIssue> of(String s, String t) => [
+          for (final i in lintTranslation(source: s, target: t))
+            if (i.kind == LintKind.invisibleChar) i,
+        ];
+    expect(
+      of('あ', 'a\u200Bb\tc\u200B'),
+      [
+        const LintIssue(
+          LintKind.invisibleChar,
+          LintSeverity.error,
+          'U+0009 U+200B',
+        ),
+      ],
+    );
+    for (final c in [
+      '\u200C',
+      '\u200D',
+      '\uFEFF',
+      '\u0001',
+      '\u007F',
+      '\u0085',
+      '\r',
+    ]) {
+      expect(
+        of('あ', 'a${c}b'),
+        hasLength(1),
+        reason: codePointLabel(c.runes.first),
+      );
+    }
+    expect(of('あ\nい', 'a\nb'), isEmpty); // \n est un jeton, pas un défaut
+    expect(of('あ\tい', 'a\tb'), isEmpty); // présent dans la source
+    expect(of('あ\tい', 'a\tb\tc'), hasLength(1)); // un de trop
+    expect(of('あ', 'a\u00A0: b'), isEmpty); // espace insécable visible
+  });
+
+  test('kana and kanji left in a translation are a warning', () {
+    final issues = lintTranslation(source: 'リオレウス', target: 'Le リオ火竜');
+    expect(
+      issues,
+      contains(
+        const LintIssue(LintKind.residualJapanese, LintSeverity.warning, '4'),
+      ),
+    );
+    expect(
+      lintTranslation(source: 'あ', target: 'Il dit « oui »… ！'),
+      isNot(
+        contains(
+          predicate<LintIssue>(
+            (i) => i.kind == LintKind.residualJapanese,
+          ),
+        ),
+      ),
+    );
+    expect(isJapaneseRune('ｱ'.runes.first), isTrue); // demi-chasse
+    expect(isJapaneseRune('ー'.runes.first), isTrue);
+    expect(isJapaneseRune('【'.runes.first), isFalse);
+  });
+
+  test('characters outside the displayable set are info, only on request', () {
+    final known = {for (var c = 0x20; c <= 0x7E; c++) c, ...'é«»'.runes};
+    final opts = LintOptions(displayableChars: known);
+    List<LintIssue> of(String t) => [
+          for (final i
+              in lintTranslation(source: 'あ', target: t, options: opts))
+            if (i.kind == LintKind.unmeasuredChar) i,
+        ];
+    expect(
+      of('Œuvre ≪x≫ œ【y】\u3000z'),
+      [
+        const LintIssue(
+          LintKind.unmeasuredChar,
+          LintSeverity.info,
+          'U+0152 U+0153 U+226A U+226B U+3000 U+3010 U+3011',
+        ),
+      ],
+    );
+    expect(of('« été »\nok'), isEmpty);
+    // Invisibles et japonais ont leurs propres constats : pas de doublon.
+    expect(of('a\u200Bbリ'), isEmpty);
+    expect(
+      lintTranslation(source: 'あ', target: 'Œuvre'),
+      isEmpty,
+      reason: 'sans ensemble fourni, aucun contrôle',
+    );
   });
 
   test('issues are value objects', () {

@@ -44,6 +44,18 @@ enum LintKind {
 
   /// Espace insécable manquante avant `: ; ! ?` (option).
   frenchSpacing,
+
+  /// Caractère invisible ou de contrôle (U+200B/200C/200D/FEFF, tabulation,
+  /// autres C0/C1 hors `\n`) plus fréquent que dans la source.
+  /// [LintIssue.detail] : points de code `U+XXXX` distincts.
+  invisibleChar,
+
+  /// Kana ou kanji laissés dans la traduction. [LintIssue.detail] : nombre.
+  residualJapanese,
+
+  /// Caractère dont l'affichage en jeu n'a pas été mesuré (hors
+  /// [LintOptions.displayableChars]). [LintIssue.detail] : points de code.
+  unmeasuredChar,
 }
 
 /// Un constat du linter. [detail] est court et sans texte du jeu, sauf le
@@ -87,11 +99,17 @@ final class GlossaryEntry {
 /// Options du linter.
 final class LintOptions {
   /// Voir les champs.
-  const LintOptions({this.frenchSpacing = false});
+  const LintOptions({this.frenchSpacing = false, this.displayableChars});
 
   /// Exige une espace insécable (U+00A0 ou U+202F) avant `: ; ! ?`. Désactivé
   /// par défaut : dépend de la police du jeu (phase 4).
   final bool frenchSpacing;
+
+  /// Points de code dont l'affichage a été observé en jeu (p. ex.
+  /// `measuredLatinChars()` de `mh_budget`, qui dépend de ce paquet). Null :
+  /// pas de contrôle [LintKind.unmeasuredChar]. Le linter ne déclare lui-même
+  /// aucun caractère « connu ».
+  final Set<int>? displayableChars;
 }
 
 /// Termes de [glossary] dont le terme source figure dans [source].
@@ -192,6 +210,46 @@ List<LintIssue> lintTranslation({
     );
   }
 
+  final invisible = _invisibleExtra(source, target);
+  if (invisible.isNotEmpty) {
+    issues.add(
+      LintIssue(
+        LintKind.invisibleChar,
+        LintSeverity.error,
+        invisible.map(codePointLabel).join(' '),
+      ),
+    );
+  }
+
+  final jp = target.runes.where(isJapaneseRune).length;
+  if (jp > 0) {
+    issues.add(
+      LintIssue(LintKind.residualJapanese, LintSeverity.warning, '$jp'),
+    );
+  }
+
+  final known = options.displayableChars;
+  if (known != null) {
+    final unknown = <int>{
+      for (final r in target.runes)
+        if (r != 0x0A &&
+            !known.contains(r) &&
+            !isInvisibleRune(r) &&
+            !isJapaneseRune(r))
+          r,
+    }.toList()
+      ..sort();
+    if (unknown.isNotEmpty) {
+      issues.add(
+        LintIssue(
+          LintKind.unmeasuredChar,
+          LintSeverity.info,
+          unknown.map(codePointLabel).join(' '),
+        ),
+      );
+    }
+  }
+
   if (options.frenchSpacing) {
     for (var i = 1; i < target.length; i++) {
       final c = target[i];
@@ -212,3 +270,44 @@ final RegExp _controlCode = RegExp('~[A-Za-z][0-9A-Za-z]{2}');
 List<String> controlCodesOf(String s) => [
       for (final m in _controlCode.allMatches(s)) m.group(0)!,
     ]..sort();
+
+/// Caractère invisible ou de contrôle : C0 hors `\n` (tabulation comprise),
+/// DEL, C1, U+200B/200C/200D (largeur nulle) et U+FEFF (BOM). NUL est traité
+/// à part ([LintKind.nulChar]).
+bool isInvisibleRune(int r) =>
+    (r > 0x00 && r < 0x20 && r != 0x0A) ||
+    (r >= 0x7F && r <= 0x9F) ||
+    r == 0x200B ||
+    r == 0x200C ||
+    r == 0x200D ||
+    r == 0xFEFF;
+
+/// Kana (U+3040–30FF, U+31F0–31FF, U+FF66–FF9F) ou kanji (U+3400–4DBF,
+/// U+4E00–9FFF, U+F900–FAFF).
+bool isJapaneseRune(int r) =>
+    (r >= 0x3040 && r <= 0x30FF) ||
+    (r >= 0x31F0 && r <= 0x31FF) ||
+    (r >= 0xFF66 && r <= 0xFF9F) ||
+    (r >= 0x3400 && r <= 0x4DBF) ||
+    (r >= 0x4E00 && r <= 0x9FFF) ||
+    (r >= 0xF900 && r <= 0xFAFF);
+
+/// `U+XXXX` (au moins 4 chiffres hexadécimaux, majuscules).
+String codePointLabel(int r) =>
+    'U+${r.toRadixString(16).toUpperCase().padLeft(4, '0')}';
+
+/// Caractères invisibles plus nombreux dans [target] que dans [source], triés.
+List<int> _invisibleExtra(String source, String target) {
+  final counts = <int, int>{};
+  for (final r in target.runes) {
+    if (isInvisibleRune(r)) counts[r] = (counts[r] ?? 0) + 1;
+  }
+  for (final r in source.runes) {
+    final n = counts[r];
+    if (n != null) counts[r] = n - 1;
+  }
+  return [
+    for (final e in counts.entries)
+      if (e.value > 0) e.key,
+  ]..sort();
+}
