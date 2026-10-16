@@ -13,6 +13,7 @@ commands:
   import   apply a mhtools dump folder to one file
   budget   budget report of one file
   build    write the translations into a copy of the ISO
+  calibrate  fill a file with test strings to calibrate the in-game display
   pretranslate  draft translations with a (local) language model
   status   show the project database content''';
 
@@ -31,6 +32,8 @@ Future<void> main(List<String> args) async {
       exitCode = await runBudget(rest, stdout, stderr);
     case 'build':
       exitCode = await runBuildCommand(rest, stdout, stderr);
+    case 'calibrate':
+      exitCode = await runCalibrate(rest, stdout, stderr);
     case 'pretranslate':
       final cancel = CancelToken();
       final sub = ProcessSignal.sigint.watch().listen((_) => cancel.cancel());

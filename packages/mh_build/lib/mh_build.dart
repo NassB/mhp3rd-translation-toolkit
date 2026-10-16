@@ -2,6 +2,7 @@
 library;
 
 export 'src/build_patch.dart';
+export 'src/calibration.dart';
 export 'src/dump_folder.dart';
 export 'src/file_budgets.dart';
 export 'src/live_file_budget.dart';
