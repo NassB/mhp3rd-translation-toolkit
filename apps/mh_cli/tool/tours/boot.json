@@ -1,0 +1,6 @@
+{"steps": [
+  {"wait": 15},
+  {"shot": "boot", "analyze": true},
+  {"press": ["start"], "pause": 3},
+  {"shot": "after_start", "analyze": true}
+]}

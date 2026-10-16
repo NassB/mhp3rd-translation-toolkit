@@ -1,0 +1,10 @@
+{"steps": [
+  {"wait": 30},
+  {"shot": "title"},
+  {"press": ["circle"], "hold": 45, "pause": 7, "tries": 8,
+   "until": {"region": [700, 150, 900, 300], "lumMin": 100, "lumMax": 170}},
+  {"shot": "game_menu", "analyze": true},
+  {"press": ["circle"], "hold": 45, "pause": 7, "tries": 4,
+   "until": {"region": [700, 150, 900, 300], "lumMin": 175, "lumMax": 255}},
+  {"shot": "character_creation", "analyze": true}
+]}

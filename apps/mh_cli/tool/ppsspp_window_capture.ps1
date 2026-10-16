@@ -9,7 +9,8 @@
 # Les captures sont des images du jeu : les garder dans out/ (ignoré par git).
 param(
   [Parameter(Mandatory = $true)][string]$Out,
-  [string]$ProcessName = 'PPSSPPWindows64'
+  [string]$ProcessName = 'PPSSPPWindows64',
+  [int]$ProcessId = 0
 )
 Add-Type -AssemblyName System.Drawing
 Add-Type @"
@@ -22,7 +23,7 @@ public class PpssppWin {
 }
 "@
 [PpssppWin]::SetProcessDPIAware() | Out-Null
-$p = Get-Process $ProcessName -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($ProcessId -gt 0) { $p = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue } else { $p = Get-Process $ProcessName -ErrorAction SilentlyContinue | Select-Object -First 1 }
 if (-not $p -or $p.MainWindowHandle -eq 0) { Write-Error "window of $ProcessName not found"; exit 2 }
 $r = New-Object PpssppWin+RECT
 [PpssppWin]::GetClientRect($p.MainWindowHandle, [ref]$r) | Out-Null
