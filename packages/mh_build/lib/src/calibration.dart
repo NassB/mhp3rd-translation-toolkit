@@ -58,12 +58,13 @@ const List<CalibrationPattern> calibrationPatterns = [
   CalibrationPattern('spaced', 'espaces entre les mots', 'ab cd ef gh '),
 ];
 
-/// Motif attribué au slot [slotIdx].
-CalibrationPattern calibrationPatternFor(int slotIdx) =>
-    calibrationPatterns[slotIdx % calibrationPatterns.length];
+/// Motif attribué à la chaîne numéro [number].
+CalibrationPattern calibrationPatternFor(int number) =>
+    calibrationPatterns[number % calibrationPatterns.length];
 
-/// Étiquette d'une chaîne de test.
-String calibrationTag(int tableIdx, int slotIdx) => '[$tableIdx.$slotIdx]';
+/// Étiquette d'une chaîne de test : `[#numéro]`, où le numéro est l'identifiant
+/// de la chaîne dans la base du projet (unique pour tous les fichiers).
+String calibrationTag(int number) => '[#$number]';
 
 /// Éléments de la source à garder : codes `~Xnn`, marqueurs `%d`/`%s`…,
 /// sauts de ligne.
@@ -99,17 +100,16 @@ String _fill(CalibrationPattern p, int budget, int start) {
   return b.toString();
 }
 
-/// Chaîne de test pour la chaîne source [source] du slot [tableIdx].[slotIdx].
+/// Chaîne de test pour la chaîne source [source] (numéro [number]).
 ///
 /// Retourne [source] inchangée si aucune portion de texte n'est assez longue
 /// pour porter l'étiquette. Le résultat ne dépasse jamais [source] en octets.
 String calibrationText(
   String source, {
-  required int tableIdx,
-  required int slotIdx,
+  required int number,
 }) {
-  final tag = calibrationTag(tableIdx, slotIdx);
-  final pattern = calibrationPatternFor(slotIdx);
+  final tag = calibrationTag(number);
+  final pattern = calibrationPatternFor(number);
 
   // Portions de texte entre les éléments conservés.
   final out = StringBuffer();
@@ -150,6 +150,7 @@ const String calibrationAuthor = 'calibration';
 final class CalibrationRow {
   /// Voir les champs.
   const CalibrationRow({
+    required this.number,
     required this.tableIdx,
     required this.slotIdx,
     required this.pattern,
@@ -158,6 +159,8 @@ final class CalibrationRow {
     required this.newlines,
   });
 
+  /// Numéro de la chaîne (identifiant dans la base), repris dans l'étiquette.
+  final int number;
   final int tableIdx;
   final int slotIdx;
 
@@ -223,11 +226,7 @@ Future<CalibrationReport> applyCalibration({
       untouched++;
       continue;
     }
-    final text = calibrationText(
-      s.sourceText,
-      tableIdx: s.tableIdx,
-      slotIdx: s.slotIdx,
-    );
+    final text = calibrationText(s.sourceText, number: s.sourceId);
     if (text == s.sourceText) {
       untouched++;
       continue;
@@ -244,9 +243,10 @@ Future<CalibrationReport> applyCalibration({
     }
     rows.add(
       CalibrationRow(
+        number: s.sourceId,
         tableIdx: s.tableIdx,
         slotIdx: s.slotIdx,
-        pattern: calibrationPatternFor(s.slotIdx).name,
+        pattern: calibrationPatternFor(s.sourceId).name,
         sourceBytes: _bytes(s.sourceText),
         bytes: _bytes(text),
         newlines: '\n'.allMatches(text).length,
@@ -263,7 +263,7 @@ String calibrationMarkdown(CalibrationReport r) {
     ..writeln('# Calibrage — fichier #${r.fileId}')
     ..writeln()
     ..writeln(
-      'Chaque chaîne du fichier porte une étiquette `[table.slot]` suivie '
+      'Chaque chaîne du fichier porte une étiquette `[#numéro]` suivie '
       'd\'un motif. Dans le jeu, repère l\'étiquette à l\'écran, puis note '
       'combien de caractères sont visibles, où le texte est coupé ou '
       'renvoyé à la ligne, et s\'il déborde de la boîte.',
@@ -273,7 +273,7 @@ String calibrationMarkdown(CalibrationReport r) {
     ..writeln();
   for (var i = 0; i < calibrationPatterns.length; i++) {
     final p = calibrationPatterns[i];
-    b.writeln('- slot ≡ $i (mod ${calibrationPatterns.length}) : '
+    b.writeln('- numéro ≡ $i (mod ${calibrationPatterns.length}) : '
         '**${p.name}** — ${p.description}');
   }
   b
@@ -284,12 +284,14 @@ String calibrationMarkdown(CalibrationReport r) {
     )
     ..writeln()
     ..writeln(
-      '| étiquette | motif | octets source | octets test | sauts de ligne |',
+      '| étiquette | table.slot | motif | octets source | octets test | '
+      'sauts de ligne |',
     )
-    ..writeln('|---|---|---|---|---|');
+    ..writeln('|---|---|---|---|---|---|');
   for (final row in r.rows) {
     b.writeln(
-      '| ${calibrationTag(row.tableIdx, row.slotIdx)} | ${row.pattern} | '
+      '| ${calibrationTag(row.number)} | ${row.tableIdx}.${row.slotIdx} | '
+      '${row.pattern} | '
       '${row.sourceBytes} | ${row.bytes} | ${row.newlines} |',
     );
   }

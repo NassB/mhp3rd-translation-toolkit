@@ -127,8 +127,8 @@ void main() {
     );
     expect(out, isNot(contains('note:')));
     final md = File('$project/CALIBRATION.md').readAsStringSync();
-    expect(md, contains('| [0.0] | ruler |'));
-    expect(md, contains('| [0.1] | narrow |'));
+    expect(md, contains('| [#1] | 0.0 | narrow |'));
+    expect(md, contains('| [#2] | 0.1 | wide |'));
     expect(RegExp(r'[぀-ヿ㐀-鿿]').hasMatch(md), isFalse);
     for (final text in [out, err]) {
       expect(RegExp(r'[぀-ヿ㐀-鿿]').hasMatch(text), isFalse);

@@ -28,7 +28,7 @@ void main() {
     test('is never longer than the source and keeps its structure', () {
       for (final s in sources) {
         for (var slot = 0; slot < 16; slot++) {
-          final t = calibrationText(s, tableIdx: 3, slotIdx: slot);
+          final t = calibrationText(s, number: slot);
           expect(bytes(t), lessThanOrEqualTo(bytes(s)), reason: '$s $slot');
           expect('\n'.allMatches(t).length, '\n'.allMatches(s).length);
           expect(
@@ -47,38 +47,38 @@ void main() {
 
     test('carries its tag, then the pattern', () {
       final long = 'あ' * 30; // 90 octets
-      final t = calibrationText(long, tableIdx: 2, slotIdx: 16); // ruler
-      expect(t, startsWith('[2.16]012345678a012345678b'));
+      final t = calibrationText(long, number: 16); // ruler
+      expect(t, startsWith('[#16]012345678a012345678b'));
       expect(bytes(t), 90);
-      final narrow = calibrationText(long, tableIdx: 0, slotIdx: 1);
-      expect(narrow, '[0.1]${'i' * 85}');
+      final narrow = calibrationText(long, number: 1);
+      expect(narrow, '[#1]${'i' * 86}');
     });
 
     test('the ruler marks every tenth character with a letter', () {
-      final t = calibrationText('あ' * 40, tableIdx: 0, slotIdx: 0);
-      final ruler = t.substring('[0.0]'.length);
+      final t = calibrationText('あ' * 40, number: 0);
+      final ruler = t.substring('[#0]'.length);
       expect(ruler.substring(0, 30), '012345678a012345678b012345678c');
     });
 
     test('accents fill whole characters only', () {
-      final t = calibrationText('あ' * 10, tableIdx: 0, slotIdx: 5); // accents
-      expect(t, startsWith('[0.5]'));
+      final t = calibrationText('あ' * 10, number: 5); // accents
+      expect(t, startsWith('[#5]'));
       expect(bytes(t), lessThanOrEqualTo(30));
       expect(() => utf8.encode(t), returnsNormally);
-      expect(t.substring(5), matches(RegExp(r'^[éèêëàâùûôîïçÉÈÀÇ]+$')));
+      expect(t.substring(4), matches(RegExp(r'^[éèêëàâùûôîïçÉÈÀÇ]+$')));
     });
 
     test('a string too short for its tag is left as it is', () {
-      expect(calibrationText('ア', tableIdx: 12, slotIdx: 34), 'ア');
-      expect(calibrationText('\n', tableIdx: 0, slotIdx: 0), '\n');
+      expect(calibrationText('ア', number: 12345), 'ア');
+      expect(calibrationText('\n', number: 0), '\n');
     });
 
     test('codes, newlines and format markers stay in place', () {
       final s = '~C02あいうえおかきくけこ\nさしすせそたちつてと%dなにぬ~C00';
-      final t = calibrationText(s, tableIdx: 0, slotIdx: 4);
+      final t = calibrationText(s, number: 4);
       final parts = t.split(RegExp(r'~C02|~C00|\n|%d'));
       expect(parts.length, s.split(RegExp(r'~C02|~C00|\n|%d')).length);
-      expect(t, startsWith('~C02[0.4]'));
+      expect(t, startsWith('~C02[#4]'));
       expect(t, contains('\n'));
       expect(t, endsWith('~C00'));
     });
@@ -86,8 +86,8 @@ void main() {
     test('is deterministic', () {
       for (final s in sources) {
         expect(
-          calibrationText(s, tableIdx: 1, slotIdx: 7),
-          calibrationText(s, tableIdx: 1, slotIdx: 7),
+          calibrationText(s, number: 7),
+          calibrationText(s, number: 7),
         );
       }
     });
@@ -137,9 +137,9 @@ void main() {
       final s0 = slots.firstWhere((s) => s.slotIdx == 0);
       expect(s0.translation!.status, 'translated');
       expect(s0.translation!.authorId, calibrationAuthor);
-      expect(s0.translation!.text, startsWith('[0.0]'));
+      expect(s0.translation!.text, startsWith('[#1]'));
       final md = calibrationMarkdown(r);
-      expect(md, contains('| [0.1] | narrow |'));
+      expect(md, contains('| [#2] | 0.1 | wide |'));
       expect(md, contains('**ruler**'));
       expect(RegExp(r'[぀-ヿ㐀-鿿]').hasMatch(md), isFalse);
     });
