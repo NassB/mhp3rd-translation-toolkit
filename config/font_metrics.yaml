@@ -1,0 +1,29 @@
+# Métriques de glyphes du texte latin (docs/ARCHITECTURE.md §8.4,
+# docs/CALIBRATION.md §5). Mesures faites en jeu (PPSSPP, ISO de calibrage,
+# 2026-10-16) ; ne modifier qu'après une nouvelle mesure.
+#
+# La police latine est à chasse fixe : dans un élément d'interface, tous les
+# caractères (lettres, accents, chiffres, ponctuation, espace) ont le même pas.
+# Le pas dépend de l'élément d'interface, pas du fichier de texte.
+#
+# Non mesuré, donc laissé inconnu : la largeur des caractères japonais
+# (wide_advance_px), celle des codes ~Xnn et des marqueurs %d/%s.
+version: 1
+
+# Pas d'un caractère japonais en pixels ; null tant qu'il n'est pas mesuré.
+wide_advance_px: null
+
+# Caractères latins supplémentaires dont l'affichage a été vérifié en jeu (en
+# plus de l'ASCII imprimable, de éèêëàâùûôîïçÉÈÀÇ et de «»).
+extra_known_chars: ""
+
+contexts:
+  - id: px7
+    advance_px: 7
+    observed: "listes et dialogues de Character Creation ; liste de menu du village"
+  - id: px6
+    advance_px: 6
+    observed: "fenêtre de message du village (en bas de l'écran)"
+  - id: px9
+    advance_px: 9
+    observed: "bandeau blanc de Character Creation"
